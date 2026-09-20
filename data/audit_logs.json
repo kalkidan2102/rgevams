@@ -1,5 +1,104 @@
 [
   {
+    "id": "log_1789928316406_117",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "eq_live_1789928316404",
+    "volcanoName": "Earthquake M 4.8 (Dobi Graben, Afar Depression)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.8 in \"Dobi Graben, Afar Depression\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T18:18:36.406Z"
+  },
+  {
+    "id": "log_1789927711717_781",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "eq_live_1789927711713",
+    "volcanoName": "Earthquake M 4.8 (Dobi Graben, Afar Depression)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.8 in \"Dobi Graben, Afar Depression\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T18:08:31.717Z"
+  },
+  {
+    "id": "log_1789927637877_917",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "eq_live_1789927637874",
+    "volcanoName": "Earthquake M 4.8 (Dobi Graben, Afar Depression)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.8 in \"Dobi Graben, Afar Depression\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T18:07:17.877Z"
+  },
+  {
+    "id": "log_1789927504556_717",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "eq_live_1789927504553",
+    "volcanoName": "Earthquake M 4.8 (Dobi Graben, Afar Depression)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.8 in \"Dobi Graben, Afar Depression\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T18:05:04.556Z"
+  },
+  {
+    "id": "log_1789908519577_826",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "eq_live_1789908519576",
+    "volcanoName": "Earthquake M 4.8 (Dobi Graben, Afar Depression)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.8 in \"Dobi Graben, Afar Depression\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T12:48:39.577Z"
+  },
+  {
+    "id": "log_1789908335480_873",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "eq_live_1789908335479",
+    "volcanoName": "Earthquake M 5.1 (Fentale Volcanic Zone, Main Ethiopian Rift)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M5.1 in \"Fentale Volcanic Zone, Main Ethiopian Rift\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T12:45:35.480Z"
+  },
+  {
+    "id": "log_1789907998755_145",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "us6000tjgf",
+    "volcanoName": "Earthquake M 4.6 (13 km ENE of Metahāra, Ethiopia)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.6 in \"13 km ENE of Metahāra, Ethiopia\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T12:39:58.755Z"
+  },
+  {
+    "id": "log_1789907998753_965",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "us7000thts",
+    "volcanoName": "Earthquake M 4.5 (6 km NW of Āwash, Ethiopia)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.5 in \"6 km NW of Āwash, Ethiopia\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T12:39:58.753Z"
+  },
+  {
+    "id": "log_1789906873565_233",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "eq_live_1789906873562",
+    "volcanoName": "Earthquake M 4.5 (Main Ethiopian Rift (Simulated Test))",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.5 in \"Main Ethiopian Rift (Simulated Test)\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-09-20T12:21:13.565Z"
+  },
+  {
     "id": "log_1788421710543_625",
     "action": "approve_user",
     "performedBy": "admin@essgi.gov.et",

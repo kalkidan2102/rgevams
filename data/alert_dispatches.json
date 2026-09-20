@@ -1,5 +1,194 @@
 [
   {
+    "id": "disp_auto_1789928316404_658",
+    "eventId": "eq_live_1789928316404",
+    "type": "both",
+    "eventTitle": "M 4.8 Seismic Tremor - Dobi Graben, Afar Depression",
+    "magnitude": 4.8,
+    "depth": 12,
+    "location": "Dobi Graben, Afar Depression",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T18:18:36.404Z",
+    "details": "Automated geohazard trigger (Manual / API Trigger): Earthquake magnitude M 4.8 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789927711715_315",
+    "eventId": "eq_live_1789927711713",
+    "type": "both",
+    "eventTitle": "M 4.8 Seismic Tremor - Dobi Graben, Afar Depression",
+    "magnitude": 4.8,
+    "depth": 12,
+    "location": "Dobi Graben, Afar Depression",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T18:08:31.715Z",
+    "details": "Automated geohazard trigger (Manual / API Trigger): Earthquake magnitude M 4.8 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789927637876_948",
+    "eventId": "eq_live_1789927637874",
+    "type": "both",
+    "eventTitle": "M 4.8 Seismic Tremor - Dobi Graben, Afar Depression",
+    "magnitude": 4.8,
+    "depth": 12,
+    "location": "Dobi Graben, Afar Depression",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T18:07:17.876Z",
+    "details": "Automated geohazard trigger (Manual / API Trigger): Earthquake magnitude M 4.8 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789927504554_299",
+    "eventId": "eq_live_1789927504553",
+    "type": "both",
+    "eventTitle": "M 4.8 Seismic Tremor - Dobi Graben, Afar Depression",
+    "magnitude": 4.8,
+    "depth": 12,
+    "location": "Dobi Graben, Afar Depression",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T18:05:04.554Z",
+    "details": "Automated geohazard trigger (Manual / API Trigger): Earthquake magnitude M 4.8 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789908519576_338",
+    "eventId": "eq_live_1789908519576",
+    "type": "both",
+    "eventTitle": "M 4.8 Seismic Tremor - Dobi Graben, Afar Depression",
+    "magnitude": 4.8,
+    "depth": 12,
+    "location": "Dobi Graben, Afar Depression",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T12:48:39.576Z",
+    "details": "Automated geohazard trigger (Manual / API Trigger): Earthquake magnitude M 4.8 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789908335479_145",
+    "eventId": "eq_live_1789908335479",
+    "type": "both",
+    "eventTitle": "M 5.1 Seismic Tremor - Fentale Volcanic Zone, Main Ethiopian Rift",
+    "magnitude": 5.1,
+    "depth": 8,
+    "location": "Fentale Volcanic Zone, Main Ethiopian Rift",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T12:45:35.479Z",
+    "details": "Automated geohazard trigger (Manual / API Trigger): Earthquake magnitude M 5.1 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789907998755_854",
+    "eventId": "us6000tjgf",
+    "type": "both",
+    "eventTitle": "M 4.6 Seismic Tremor - 13 km ENE of Metahāra, Ethiopia",
+    "magnitude": 4.6,
+    "depth": 10,
+    "location": "13 km ENE of Metahāra, Ethiopia",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T12:39:58.755Z",
+    "details": "Automated geohazard trigger (USGS Real-time Telemetry Ingest): Earthquake magnitude M 4.6 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789907998751_746",
+    "eventId": "us7000thts",
+    "type": "both",
+    "eventTitle": "M 4.5 Seismic Tremor - 6 km NW of Āwash, Ethiopia",
+    "magnitude": 4.5,
+    "depth": 10,
+    "location": "6 km NW of Āwash, Ethiopia",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T12:39:58.751Z",
+    "details": "Automated geohazard trigger (USGS Real-time Telemetry Ingest): Earthquake magnitude M 4.5 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
+    "id": "disp_auto_1789906873563_579",
+    "eventId": "eq_live_1789906873562",
+    "type": "both",
+    "eventTitle": "M 4.5 Seismic Tremor - Main Ethiopian Rift (Simulated Test)",
+    "magnitude": 4.5,
+    "depth": 10,
+    "location": "Main Ethiopian Rift (Simulated Test)",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-09-20T12:21:13.563Z",
+    "details": "Automated geohazard trigger (Manual / API Trigger): Earthquake magnitude M 4.5 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
     "id": "disp_init_1",
     "type": "both",
     "eventTitle": "M 4.9 Awash Basin & Fentale Graben Seismic Tremor",

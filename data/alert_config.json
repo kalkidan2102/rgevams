@@ -5,9 +5,8 @@
   "emailAlertsEnabled": true,
   "smsAlertsEnabled": true,
   "alertRecipientsEmail": [
-    "directorate.alert@essgi.gov.et",
-    "duty.seismologist@essgi.gov.et",
-    "drmc.operations@drmc.gov.et"
+    "danieladane2196@gmail.com",
+    "getakalkidan541@gmail.com"
   ],
   "alertRecipientsPhone": [
     "+251911223344",
