@@ -1,0 +1,29 @@
+{
+  "minMagnitude": 4.5,
+  "maxDepth": 35,
+  "depthThreshold": 35,
+  "emailAlertsEnabled": true,
+  "smsAlertsEnabled": true,
+  "alertRecipientsEmail": [
+    "directorate.alert@essgi.gov.et",
+    "duty.seismologist@essgi.gov.et",
+    "drmc.operations@drmc.gov.et"
+  ],
+  "alertRecipientsPhone": [
+    "+251911223344",
+    "+251922334455",
+    "+251933445566"
+  ],
+  "targetRegions": [
+    "Afar Depression & Danakil Graben",
+    "Main Ethiopian Rift (MER) Corridor",
+    "Fentale-Awash Basin",
+    "Central Highlands Escarpment"
+  ],
+  "autoDispatchOnCritical": true,
+  "severityFilter": "Orange",
+  "smsTemplateText": "ESSGI CRITICAL ALERT: M{mag} Earthquake detected at depth {depth}km in {loc}. Automatic advisory triggered by ESSGI early warning system.",
+  "emailSubjectTemplate": "[ESSGI GEODISASTER WARNING] M{mag} Seismic Tremor - {loc}",
+  "updatedAt": "2026-08-20T12:38:10.438Z",
+  "updatedBy": "ESSGI Directorate Master"
+}

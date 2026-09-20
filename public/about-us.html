@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESSGI | About Us</title>
+  <style>
+    :root { --bg: #eff8fb; --navy: #0e4a72; --blue: #0085c8; --gold: #d48f29; --text: #173447; --line: #cbd5e1; --textsoft: #496674; --cream: #faf9f5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, Arial, sans-serif; color: var(--text); background: radial-gradient(#eefaff, #eff8fb); min-height: 100vh; }
+    .topbar { background: var(--navy); color: white; padding: 16px 26px; }
+    .brand { font-weight: 900; letter-spacing: 1px; font-size: 24px; }
+    .content { max-width: 1080px; margin: 36px auto; background: white; border-radius: 30px; padding: 40px; border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(30, 64, 175, .10); }
+    h1 { margin: 0 0 12px; color: var(--navy); font-size: 34px; }
+    h2 { color: var(--navy); font-size: 25px; margin: 0 0 12px; }
+    p { line-height: 1.82; font-size: 15px; color: var(--textsoft); }
+    .kpi { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 16px; margin-top: 26px;}
+    .kpi article { background: #f8fafc; border-radius: 16px; border: 1px solid var(--line); padding: 18px; }
+    .kpi strong { display: block; color: var(--blue); font-size: 24px; margin-bottom: 6px; }
+    .kpi span { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--navy); text-transform: uppercase; }
+    .focus-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 16px; margin-top: 28px; }
+    .focus-grid article { background: var(--cream); border: 1px solid var(--line); border-radius: 16px; padding: 20px; min-height: 160px; }
+    .focus-grid article .num { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 999px; background: var(--navy); color: white; font-weight: 900; font-size: 12px; margin-bottom: 12px; }
+    .focus-grid article h3 { font-size: 15px; margin: 0 0 10px; color: var(--navy); }
+    .focus-grid article p { font-size: 13px; line-height: 1.68; }
+    .cta-row { margin-top: 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .button { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 12px; color: white; background: var(--navy); text-decoration: none; font-weight: 900; margin-top: 20px; }
+    .button.secondary { background: var(--gold); color: var(--navy); margin-top:0; }
+    footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); background: linear-gradient(135deg, var(--navy), #173b51); color: white; border-radius: 18px; padding: 20px; }
+    footer .footer-title { font-size: 13px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; color: var(--gold); }
+    footer .contact-line { font-size: 13px; line-height: 1.9; color: white; }
+    footer a { color: #bef7ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">ESSGI • Ethiopian Space Science & Geospatial Institute</div>
+  </header>
+  <main class="content">
+    <h1>About ESSGI</h1>
+    <p>The Ethiopian Space Science and Geospatial Institute leads Ethiopia’s national program in geospatial intelligence, geodesy, remote sensing, satellite systems, and geohazard monitoring.</p>
+    <p>Our mandate combines scientific observatories, emergency coordination, early-warning analysis, and civil-protection research to support safer infrastructure and stronger disaster awareness across the nation.</p>
+
+    <section class="kpi">
+      <article>
+        <strong>03</strong>
+        <span>Field Observatories</span>
+      </article>
+      <article>
+        <strong>115</strong>
+        <span>Volcanic Centers</span>
+      </article>
+      <article>
+        <strong>24/7</strong>
+        <span>Monitoring Operations</span>
+      </article>
+    </section>
+
+    <section class="focus-grid">
+      <article>
+        <div class="num">01</div>
+        <h3>Seismic Intelligence</h3>
+        <p>The system collects, normalizes, and visualizes seismic activity across Ethiopia to identify fault corridors, tremor clusters, and public-risk conditions.</p>
+      </article>
+      <article>
+        <div class="num">02</div>
+        <h3>Volcanic Risk Monitoring</h3>
+        <p>ESSGI tracks volcanic zones, crater behavior, gas emissions, thermal anomalies, and regional hazard posture for emergency planning.</p>
+      </article>
+      <article>
+        <div class="num">03</div>
+        <h3>Geospatial Decision Support</h3>
+        <p>The portal models geospatial coverage, infrastructure impact zones, GNSS readings, and GIS-driven response intelligence.</p>
+      </article>
+      <article>
+        <div class="num">04</div>
+        <h3>Early Warning and Public Safety</h3>
+        <p>Outputs from the system are used to build dashboards, technical advisories, operational alerts, and geohazard communication flows.</p>
+      </article>
+    </section>
+
+    <section class="cta-row">
+      <a class="button" href="/">Return to the Main System</a>
+      <a class="button secondary" href="mailto:info@essgi.gov.et">Contact ESSGI</a>
+    </section>
+
+    <footer>
+      <div class="footer-title">ESSGI Contact</div>
+      <div class="contact-line">Ethiopian Space Science and Geospatial Institute</div>
+      <div class="contact-line">Entoto Observatory & Research Center, Addis Ababa, Ethiopia</div>
+      <div class="contact-line">Email: <a href="mailto:info@essgi.gov.et">info@essgi.gov.et</a></div>
+      <div class="contact-line">Phone: <a href="tel:+251111261000">+251 11 126 1000</a></div>
+    </footer>
+  </main>
+</body>
+</html>

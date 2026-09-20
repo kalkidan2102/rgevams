@@ -1,0 +1,190 @@
+[
+  {
+    "id": "seismology",
+    "title": "Seismology & Tectonic Sector",
+    "code": "ESSGI-DIR-GEO-01",
+    "directorate": "Directorate of Geodynamics & Seismological Telemetry",
+    "head": "Dr. Fekadu Abaye (Chief Geophysicist)",
+    "location": "Mount Furi Seismological Observatory (FURI), Addis Ababa",
+    "description": "Operates 18 permanent broadband GNSS and seismic stations along the Main Ethiopian Rift (MER). Integrates real-time wave forms from the historical Furi Observatory, USGS stream feeds, and local velocity models to calculate moment tensor solutions for micro-tremor swarms.",
+    "keyFunctions": [
+      "Real-time seismic wave processing and focal mechanism inversion",
+      "Continuous monitoring of the Hawassa, Adama, and Ankober seismogenic grabens",
+      "Maintenance of the national broadband seismograph network (FURI, BDAS, ATIR)",
+      "Automated epicenter localization and focal depth estimation algorithms"
+    ],
+    "activeProjects": [
+      "Sub-second USGS API telemetry sync",
+      "Furi Observatory ObsPy Obspython spectral noise analyzer",
+      "Cross-border East African Rift System (EARS) seismic strain mapping"
+    ],
+    "stationCount": "18 Broadband Seismic Stations",
+    "status": "ONLINE",
+    "badge": "Real-time Telemetry",
+    "targetTab": "earthquakes",
+    "metrics": [
+      {
+        "label": "Active Array Stations",
+        "value": "18 Online"
+      },
+      {
+        "label": "Daily Waveform Volume",
+        "value": "2.4 GB/sec"
+      },
+      {
+        "label": "Min Magnitude Detection",
+        "value": "M 1.2"
+      }
+    ]
+  },
+  {
+    "id": "volcanology",
+    "title": "Volcanology & Geothermal Sector",
+    "code": "ESSGI-DIR-VOLC-02",
+    "directorate": "Directorate of Volcanology & Geothermal Hazards",
+    "head": "Dr. Atalay Ayele (Principal Volcanologist)",
+    "location": "Afar Rift Dynamics Field Station, Semera & Erta Ale Base",
+    "description": "Maintains a national catalog of 115 volcanic centers in Ethiopia. Combines orbital MODIS/VIIRS thermal infrared anomaly detection, drone gas vent profiling, and ground SO2 emissions sensors at active calderas including Erta Ale, Dallol, Aluto, and Dabbahu.",
+    "keyFunctions": [
+      "Thermal radiation flux tracking over Erta Ale active lava lake",
+      "Hydrothermal geothermal fluid and soil degasification sampling",
+      "Eruption alert escalation protocol for aviation and civil defense",
+      "Volcanic Ash Advisory (VAAC) reporting for regional flight corridors"
+    ],
+    "activeProjects": [
+      "Danakil Depression thermal plume satellite radar monitoring",
+      "Aluto-Langano geothermal field pressure and inflation modeling",
+      "Erta Ale fissure eruption early warning sensor mesh"
+    ],
+    "stationCount": "115 Volcanic Centers Catalogs",
+    "status": "ELEVATED",
+    "badge": "Volcanic Database",
+    "targetTab": "volcanoes",
+    "metrics": [
+      {
+        "label": "Monitored Calderas",
+        "value": "115 Vents"
+      },
+      {
+        "label": "Active Lava Lakes",
+        "value": "Erta Ale"
+      },
+      {
+        "label": "Geothermal Fields",
+        "value": "14 Sites"
+      }
+    ]
+  },
+  {
+    "id": "space-science",
+    "title": "Space Science & Satellite Geodesy Sector",
+    "code": "ESSGI-DIR-SPAC-03",
+    "directorate": "Directorate of Space Science & Satellite Navigation",
+    "head": "Prof. Solomon Belay (Director of Space Science)",
+    "location": "Entoto Astronomical Observatory & Research Center (3,200m ASL)",
+    "description": "Utilizes twin 1-meter optical telescopes at Entoto Observatory and orbital Synthetic Aperture Radar (SAR) satellite interferometry to quantify rifting crustal strain rate, tropospheric column GPS delay, and space weather ionospheric perturbations.",
+    "keyFunctions": [
+      "Multi-constellation GNSS velocity vector inversion (GPS, GLONASS, Galileo)",
+      "Sentinel-1 InSAR phase interferogram processing for ground subsidence",
+      "Space weather ionospheric TEC (Total Electron Content) modeling",
+      "Astronomical observation and deep celestial imaging at Entoto Observatory"
+    ],
+    "activeProjects": [
+      "High-altitude tropospheric delay calibration for GPS rifting vectors",
+      "East African Ionospheric Scintillation monitoring network",
+      "Satellite ground station tracking and telemetry ingest"
+    ],
+    "stationCount": "2 Twin Optical Telescopes + 18 GNSS",
+    "status": "ONLINE",
+    "badge": "Orbital SAR Radar",
+    "targetTab": "gnss-network",
+    "metrics": [
+      {
+        "label": "Geodetic Crustal Vector",
+        "value": "15.2 mm/yr"
+      },
+      {
+        "label": "Observatory Altitude",
+        "value": "3,200 meters"
+      },
+      {
+        "label": "Optical Telescopes",
+        "value": "Twin 1.0m"
+      }
+    ]
+  },
+  {
+    "id": "disaster-risk",
+    "title": "Disaster Risk & Geospatial Intelligence Sector",
+    "code": "ESSGI-DIR-DRM-04",
+    "directorate": "Directorate of Geospatial Intelligence & Civil Preparedness",
+    "head": "Commander Worku Bekele (Disaster Risk Liaison Officer)",
+    "location": "National Emergency Operations Center (EOC), Addis Ababa",
+    "description": "Generates automated AI geological risk briefings powered by Gemini models and broadcasts bilingual SMS warning advisories in Afar, Amharic, and Oromiffa to pastoralist communities and transport authorities along active rifting zones.",
+    "keyFunctions": [
+      "Automated Gemini AI hazard risk synthesis and executive briefings",
+      "Bilingual SMS advisory dispatch to DRMC regional officers",
+      "Spatial GIS overlay of population density vs seismic fault line buffers",
+      "Infrastructure vulnerability matrix calculation for transport & energy corridors"
+    ],
+    "activeProjects": [
+      "Afar Pastoralist Early Warning SMS Broadcast Gateway",
+      "Gemini 2.5 Flash automated daily hazard report synthesis",
+      "National Seismogenic Landslide and Subsidence Susceptibility Atlas"
+    ],
+    "stationCount": "National Civil Safety Network",
+    "status": "NOMINAL",
+    "badge": "Early Warning",
+    "targetTab": "report",
+    "metrics": [
+      {
+        "label": "Bilingual SMS Reach",
+        "value": "45,000 Users"
+      },
+      {
+        "label": "AI Briefing Cadence",
+        "value": "Real-time"
+      },
+      {
+        "label": "DRMC Integration",
+        "value": "Level 1 Direct"
+      }
+    ]
+  },
+  {
+    "id": "gis-remote-sensing",
+    "title": "Remote Sensing & GIS Application Sector",
+    "code": "ESSGI-DIR-GIS-05",
+    "directorate": "Directorate of GIS, Land Cover & Earth Observation",
+    "head": "Eng. Tigist Haile (Chief GIS Officer)",
+    "location": "Geospatial Institute Headquarters, Addis Ababa",
+    "description": "Processes high-resolution Sentinel & Landsat satellite imagery for national land use mapping, flood susceptibility modeling in Awash basin, and active lava flow line mapping over the Danakil rift floor.",
+    "keyFunctions": [
+      "Satellite optical multispectral classification & land surface temperature",
+      "GIS hazard vulnerability mapping for urban infrastructure and hydro-dams",
+      "Digital Elevation Model (DEM) extraction from stereoscopic space imagery"
+    ],
+    "activeProjects": [
+      "National High-Resolution GIS Soil & Rift Fault Atlas",
+      "Sentinel-2 Thermal Anomaly Auto-Classification System"
+    ],
+    "stationCount": "3 Earth Observation Ground Receivers",
+    "status": "ONLINE",
+    "badge": "GIS Earth Observation",
+    "targetTab": "map",
+    "metrics": [
+      {
+        "label": "Satellite Swath Area",
+        "value": "1.1M km²"
+      },
+      {
+        "label": "GIS Spatial Resolution",
+        "value": "0.5m Ortho"
+      },
+      {
+        "label": "Update Cadence",
+        "value": "Daily Orbit Pass"
+      }
+    ]
+  }
+]

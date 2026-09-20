@@ -1,0 +1,38 @@
+[
+  {
+    "id": "log_1788421710543_625",
+    "action": "approve_user",
+    "performedBy": "admin@essgi.gov.et",
+    "performedByEmail": "admin@essgi.gov.et",
+    "performedByRole": "admin",
+    "details": "Approved user account: kal getachew (kalgetachew@essgi.gov.et).",
+    "timestamp": "2026-09-03T07:48:30.543Z"
+  },
+  {
+    "id": "log_1788421671890_946",
+    "action": "register_request",
+    "performedBy": "kal getachew",
+    "performedByEmail": "kalgetachew@essgi.gov.et",
+    "performedByRole": "official",
+    "details": "Registration request submitted for kal getachew (kalgetachew@essgi.gov.et) as OFFICIAL. Awaiting Super Admin authorization.",
+    "timestamp": "2026-09-03T07:47:51.891Z"
+  },
+  {
+    "id": "log_1788313324039_942",
+    "action": "register_request",
+    "performedBy": "Kalkidan Getachew",
+    "performedByEmail": "kalkidan@essgi.gov.et",
+    "performedByRole": "official",
+    "details": "Registration request submitted for Kalkidan Getachew (kalkidan@essgi.gov.et) as OFFICIAL. Awaiting Super Admin authorization.",
+    "timestamp": "2026-09-02T01:42:04.040Z"
+  },
+  {
+    "id": "log_1785983465429_202",
+    "action": "register_request",
+    "performedBy": "kal",
+    "performedByEmail": "kal@ertkla",
+    "performedByRole": "official",
+    "details": "Registration request submitted for kal (kal@ertkla) as OFFICIAL. Awaiting Super Admin authorization.",
+    "timestamp": "2026-08-06T02:31:05.429Z"
+  }
+]

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESSGI | GIS Map</title>
+  <style>
+    :root { --bg: #071b2d; --panel: #0d3448; --cyan: #00d4ff; --line: #6be7ff; --text: #eafafb; --subtle: #adc5cf; --gold: #f7d08a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, Arial, sans-serif; color: var(--text); background: linear-gradient(135deg, #071b2d, #153b49); min-height: 100vh; }
+    .header { padding: 20px 30px; border-bottom: 1px solid rgba(255,255,255,.20); background: rgba(2,24,34,.55); display: flex; align-items: center; justify-content: space-between; }
+    .title { font-weight: 900; letter-spacing: 2px; font-size: 30px; }
+    .badge { border: 1px solid var(--line); border-radius: 999px; padding: 8px 17px; font-size: 11px; font-weight: 900; }
+    .layout { padding: 24px; max-width: 1180px; margin: auto; }
+    .mapPanel { min-height: 440px; background-image: linear-gradient(rgba(255,255,255,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.10) 1px, transparent 1px), radial-gradient(circle, rgba(43,138,126,.8), transparent 65%); background-size: 40px 40px, 40px 40px, cover; border-radius: 20px; border: 1px solid var(--line); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .mapPanel::before { content: "ESSGI GIS • ACTIVE FIELD LAYERS"; position: absolute; left: 24px; top: 20px; font-weight: 900; font-size: 11px; letter-spacing: 2px; }
+    .mapPanel .mapInner { width: min(600px, 88%); height: 330px; border-radius: 50%; border: 2px dashed var(--gold); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 900; background: rgba(30,41,59,.45); }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 12px; margin-top: 18px; }
+    .stats article { background: rgba(255,255,255,.06); border-radius: 12px; border: 1px solid rgba(255,255,255,.25); padding: 16px; }
+    .stats strong { display: block; font-size: 25px; color: var(--cyan); margin-bottom: 8px; }
+    .stats span { font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--subtle); }
+    .button { display: inline-flex; margin-top: 20px; padding: 12px 20px; border-radius: 12px; background: var(--gold); color: var(--bg); text-decoration: none; font-weight: 900; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="title">OST • GIS Map Room</div>
+    <div class="badge">LIVE TRACKING // ONLINE</div>
+  </header>
+  <main class="layout">
+    <section class="mapPanel">
+      <div class="mapInner">GIS MAP FIELD<br>OBSERVATION UI</div>
+    </section>
+    <section class="stats">
+      <article><strong>06</strong><span>Active Layers</span></article>
+      <article><strong>18</strong><span>GNSS Nodes</span></article>
+      <article><strong>12</strong><span>Fault Hotspots</span></article>
+      <article><strong>99%</strong><span>Telemetry Sync</span></article>
+    </section>
+    <a class="button" href="/">Return to the Main System</a>
+  </main>
+</body>
+</html>

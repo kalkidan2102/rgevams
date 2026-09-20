@@ -1,0 +1,610 @@
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import {
+  InSARRasterMap,
+  VolcanoTarget,
+  InSARFilterMode,
+  InSARViewLayer,
+  InSARColormap
+} from "../types/insar";
+
+interface DisplacementMapProps {
+  rasterMap: InSARRasterMap;
+  volcano: VolcanoTarget;
+  selectedLat: number;
+  selectedLon: number;
+  filterMode: InSARFilterMode;
+  viewLayer: InSARViewLayer;
+  colormap?: InSARColormap;
+  coherenceThreshold: number;
+  showPixelGrid?: boolean;
+  onPointSelect: (coords: { lat: number; lon: number }) => void;
+  onOpenTransectModal?: () => void;
+  onSetCustomRef?: (coords: { lat: number; lon: number }) => void;
+}
+
+// Exact COMET Volcano Portal 32-bit ABGR color lookup calculation
+function get32BitColor(
+  val: number,
+  minVal: number,
+  maxVal: number,
+  colormap: InSARColormap = "comet_jet"
+): number {
+  let norm = Math.max(0, Math.min(1, (val - minVal) / (maxVal - minVal || 1)));
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (colormap === "spectral") {
+    const fringeCycle = 28; // mm
+    const phaseNorm = (((val % fringeCycle) + fringeCycle) % fringeCycle) / fringeCycle;
+    const t = phaseNorm;
+    r = Math.floor(128 + 127 * Math.cos(2 * Math.PI * t));
+    g = Math.floor(128 + 127 * Math.cos(2 * Math.PI * t - (2 * Math.PI) / 3));
+    b = Math.floor(128 + 127 * Math.cos(2 * Math.PI * t - (4 * Math.PI) / 3));
+  } else if (colormap === "turbo") {
+    r = Math.min(255, Math.max(0, Math.floor(34.61 + norm * (1172.33 - norm * (10793.56 - norm * (33300.12 - norm * (38394.49 - norm * 14825.05)))))));
+    g = Math.min(255, Math.max(0, Math.floor(23.31 + norm * (557.33 + norm * (1225.33 - norm * (3574.96 - norm * (1073.77 - norm * 707.56)))))));
+    b = Math.min(255, Math.max(0, Math.floor(27.2 + norm * (3211.1 - norm * (15327.97 - norm * (27814.0 - norm * (22569.18 - norm * 6838.66)))))));
+  } else if (colormap === "diverging") {
+    if (norm < 0.5) {
+      const t = norm / 0.5;
+      r = Math.floor(30 + t * 215);
+      g = Math.floor(60 + t * 185);
+      b = Math.floor(190 + t * 55);
+    } else {
+      const t = (norm - 0.5) / 0.5;
+      r = Math.floor(245 - t * 30);
+      g = Math.floor(245 - t * 205);
+      b = Math.floor(245 - t * 215);
+    }
+  } else {
+    // EXACT COMET VOLCANO PORTAL PALETTE (As in user screenshot: Deep Blue -> Cyan -> Pale Mint -> Golden Ochre -> Dark Brown)
+    if (norm < 0.25) {
+      const t = norm / 0.25;
+      r = Math.floor(26 + t * 52);
+      g = Math.floor(54 + t * 114);
+      b = Math.floor(128 + t * 94);
+    } else if (norm < 0.50) {
+      const t = (norm - 0.25) / 0.25;
+      r = Math.floor(78 + t * 141);
+      g = Math.floor(168 + t * 60);
+      b = Math.floor(222 - t * 2);
+    } else if (norm < 0.75) {
+      const t = (norm - 0.50) / 0.25;
+      r = Math.floor(219 - t * 17);
+      g = Math.floor(228 - t * 90);
+      b = Math.floor(220 - t * 216);
+    } else {
+      const t = (norm - 0.75) / 0.25;
+      r = Math.floor(202 - t * 110);
+      g = Math.floor(138 - t * 109);
+      b = Math.floor(4 + t * 2);
+    }
+  }
+
+  // 32-bit ABGR packing for Little-Endian Uint32Array (Alpha = 230 for terrain translucency)
+  return (235 << 24) | (b << 16) | (g << 8) | r;
+}
+
+export const DisplacementMap: React.FC<DisplacementMapProps> = ({
+  rasterMap,
+  volcano,
+  selectedLat,
+  selectedLon,
+  filterMode,
+  viewLayer,
+  colormap = "comet_jet",
+  coherenceThreshold,
+  showPixelGrid = true,
+  onPointSelect
+}) => {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const selectedMarkerRef = useRef<L.CircleMarker | null>(null);
+  const refMarkerRef = useRef<L.CircleMarker | null>(null);
+
+  // High-performance offscreen raster canvas cache
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationFrameIdRef = useRef<number | null>(null);
+
+  // Hover state for interactive pixel inspector
+  const [hoverInfo, setHoverInfo] = useState<{
+    col: number;
+    row: number;
+    lat: number;
+    lon: number;
+    disp: number | null;
+    vel: number | null;
+    coh: number;
+    dem: number;
+  } | null>(null);
+
+  // 1. PRE-BAKE OFFSCREEN RASTER IMAGE BUFFER
+  const bakeOffscreenRaster = useCallback(() => {
+    if (!rasterMap) return;
+
+    const {
+      width,
+      height,
+      values,
+      velocityValues,
+      coherenceValues,
+      demValues,
+      dispMin,
+      dispMax,
+      velMin,
+      velMax
+    } = rasterMap;
+
+    let offCanvas = offscreenCanvasRef.current;
+    if (!offCanvas) {
+      offCanvas = document.createElement("canvas");
+      offscreenCanvasRef.current = offCanvas;
+    }
+
+    offCanvas.width = width;
+    offCanvas.height = height;
+
+    const offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
+    if (!offCtx) return;
+
+    const imgData = offCtx.createImageData(width, height);
+    const buf32 = new Uint32Array(imgData.data.buffer);
+
+    let minV = dispMin;
+    let maxV = dispMax;
+    if (viewLayer === "velocity") {
+      minV = velMin;
+      maxV = velMax;
+    } else if (viewLayer === "coherence") {
+      minV = 0.0;
+      maxV = 1.0;
+    } else if (viewLayer === "dem") {
+      minV = 500;
+      maxV = 3000;
+    }
+
+    const totalCells = width * height;
+    for (let i = 0; i < totalCells; i++) {
+      const coh = coherenceValues ? coherenceValues[i] : 0.8;
+
+      if (coh < coherenceThreshold) {
+        buf32[i] = 0; // transparent
+        continue;
+      }
+
+      let val: number | null = null;
+      if (viewLayer === "velocity") {
+        val = velocityValues ? velocityValues[i] : null;
+      } else if (viewLayer === "cumulative") {
+        val = values[i];
+      } else if (viewLayer === "coherence") {
+        val = coh;
+      } else {
+        val = demValues ? demValues[i] : 1500;
+      }
+
+      if (val === null || val === undefined) {
+        buf32[i] = 0;
+        continue;
+      }
+
+      buf32[i] = get32BitColor(val, minV, maxV, colormap);
+    }
+
+    offCtx.putImageData(imgData, 0, 0);
+  }, [rasterMap, viewLayer, colormap, coherenceThreshold]);
+
+  // 2. HARDWARE-ACCELERATED RENDER TO SCREEN CANVAS
+  const renderScreenCanvas = useCallback(() => {
+    const map = leafletMapRef.current;
+    const canvas = canvasRef.current;
+    const offCanvas = offscreenCanvasRef.current;
+    if (!map || !canvas || !offCanvas || !rasterMap) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const containerSize = map.getSize();
+    const dpr = window.devicePixelRatio || 1;
+
+    if (
+      canvas.width !== containerSize.x * dpr ||
+      canvas.height !== containerSize.y * dpr
+    ) {
+      canvas.width = containerSize.x * dpr;
+      canvas.height = containerSize.y * dpr;
+      canvas.style.width = `${containerSize.x}px`;
+      canvas.style.height = `${containerSize.y}px`;
+    }
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.imageSmoothingEnabled = false; // Crisp pixelated COMET blocks
+    ctx.clearRect(0, 0, containerSize.x, containerSize.y);
+
+    const b = rasterMap.bounds;
+    const pNW = map.latLngToContainerPoint([b.north, b.west]);
+    const pSE = map.latLngToContainerPoint([b.south, b.east]);
+
+    const destX = Math.round(pNW.x);
+    const destY = Math.round(pNW.y);
+    const destW = Math.round(pSE.x - pNW.x);
+    const destH = Math.round(pSE.y - pNW.y);
+
+    ctx.drawImage(offCanvas, destX, destY, destW, destH);
+
+    // Optional pixel grid outlines
+    if (showPixelGrid && destW > 40 && destH > 40) {
+      const cellW = destW / rasterMap.width;
+      const cellH = destH / rasterMap.height;
+
+      if (cellW >= 3.0 && cellH >= 3.0) {
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
+        ctx.lineWidth = 0.5;
+
+        for (let c = 0; c <= rasterMap.width; c++) {
+          const lx = Math.round(destX + c * cellW) - 0.5;
+          ctx.moveTo(lx, destY);
+          ctx.lineTo(lx, destY + destH);
+        }
+
+        for (let r = 0; r <= rasterMap.height; r++) {
+          const ly = Math.round(destY + r * cellH) - 0.5;
+          ctx.moveTo(destX, ly);
+          ctx.lineTo(destX + destW, ly);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // COMET Top/Right crosshair reference marks (km grid ticks)
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.lineWidth = 0.6;
+    ctx.setLineDash([2, 2]);
+
+    const midX = destX + destW * 0.5;
+    const midY = destY + destH * 0.5;
+
+    // Center vertical cross line (0 km)
+    ctx.beginPath();
+    ctx.moveTo(midX, destY);
+    ctx.lineTo(midX, destY + destH * 0.3);
+    ctx.stroke();
+
+    // Center horizontal cross line (0 km)
+    ctx.beginPath();
+    ctx.moveTo(destX + destW * 0.7, midY);
+    ctx.lineTo(destX + destW, midY);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.restore();
+  }, [rasterMap, showPixelGrid]);
+
+  // 3. OVERLAY CANVAS FOR HOVER RETICLE
+  const renderOverlayCanvas = useCallback(() => {
+    const map = leafletMapRef.current;
+    const overlay = overlayCanvasRef.current;
+    if (!map || !overlay || !rasterMap) return;
+
+    const ctx = overlay.getContext("2d");
+    if (!ctx) return;
+
+    const containerSize = map.getSize();
+    const dpr = window.devicePixelRatio || 1;
+
+    if (
+      overlay.width !== containerSize.x * dpr ||
+      overlay.height !== containerSize.y * dpr
+    ) {
+      overlay.width = containerSize.x * dpr;
+      overlay.height = containerSize.y * dpr;
+      overlay.style.width = `${containerSize.x}px`;
+      overlay.style.height = `${containerSize.y}px`;
+    }
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, containerSize.x, containerSize.y);
+
+    if (hoverInfo && hoverInfo.col !== undefined && hoverInfo.row !== undefined) {
+      const b = rasterMap.bounds;
+      const dLat = (b.north - b.south) / rasterMap.height;
+      const dLon = (b.east - b.west) / rasterMap.width;
+
+      const cellNorth = b.north - hoverInfo.row * dLat;
+      const cellSouth = b.north - (hoverInfo.row + 1) * dLat;
+      const cellWest = b.west + hoverInfo.col * dLon;
+      const cellEast = b.west + (hoverInfo.col + 1) * dLon;
+
+      const pNW = map.latLngToContainerPoint([cellNorth, cellWest]);
+      const pSE = map.latLngToContainerPoint([cellSouth, cellEast]);
+
+      const cellX = Math.floor(pNW.x);
+      const cellY = Math.floor(pNW.y);
+      const cellW = Math.max(2, Math.ceil(pSE.x - pNW.x));
+      const cellH = Math.max(2, Math.ceil(pSE.y - pNW.y));
+
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cellX - 0.5, cellY - 0.5, cellW + 1, cellH + 1);
+
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1.0;
+      ctx.strokeRect(cellX - 1.5, cellY - 1.5, cellW + 3, cellH + 3);
+    }
+    ctx.restore();
+  }, [hoverInfo, rasterMap]);
+
+  useEffect(() => {
+    bakeOffscreenRaster();
+    renderScreenCanvas();
+  }, [bakeOffscreenRaster, renderScreenCanvas]);
+
+  const scheduleScreenRender = useCallback(() => {
+    if (animationFrameIdRef.current) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+    }
+    animationFrameIdRef.current = requestAnimationFrame(() => {
+      renderScreenCanvas();
+      renderOverlayCanvas();
+    });
+  }, [renderScreenCanvas, renderOverlayCanvas]);
+
+  useEffect(() => {
+    renderOverlayCanvas();
+  }, [hoverInfo, renderOverlayCanvas]);
+
+  // Initialize Leaflet Map with exact Topo / Hillshade basemap
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    if ((mapContainerRef.current as any)._leaflet_id) {
+      delete (mapContainerRef.current as any)._leaflet_id;
+    }
+
+    if (!leafletMapRef.current) {
+      const centerLat = (volcano.bounds.north + volcano.bounds.south) / 2;
+      const centerLon = (volcano.bounds.east + volcano.bounds.west) / 2;
+
+      const map = L.map(mapContainerRef.current, {
+        center: [centerLat, centerLon],
+        zoom: 11,
+        zoomControl: false,
+        attributionControl: false
+      });
+
+      // Esri World Topo / Shaded Relief basemap (matches COMET's pale green/grey relief background)
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 18,
+          opacity: 0.85
+        }
+      ).addTo(map);
+
+      map.on("move", scheduleScreenRender);
+      map.on("zoom", scheduleScreenRender);
+      map.on("viewreset", scheduleScreenRender);
+      map.on("resize", scheduleScreenRender);
+
+      map.on("click", (e: L.LeafletMouseEvent) => {
+        const lat = parseFloat(e.latlng.lat.toFixed(4));
+        const lon = parseFloat(e.latlng.lng.toFixed(4));
+        onPointSelect({ lat, lon });
+      });
+
+      map.on("mousemove", (e: L.LeafletMouseEvent) => {
+        if (!rasterMap) return;
+        const b = rasterMap.bounds;
+        const lat = e.latlng.lat;
+        const lon = e.latlng.lng;
+
+        if (lat < b.south || lat > b.north || lon < b.west || lon > b.east) {
+          setHoverInfo(null);
+          return;
+        }
+
+        const dLat = (b.north - b.south) / rasterMap.height;
+        const dLon = (b.east - b.west) / rasterMap.width;
+
+        const col = Math.floor((lon - b.west) / dLon);
+        const row = Math.floor((b.north - lat) / dLat);
+
+        if (
+          col >= 0 &&
+          col < rasterMap.width &&
+          row >= 0 &&
+          row < rasterMap.height
+        ) {
+          const idx = row * rasterMap.width + col;
+          const disp = rasterMap.values[idx];
+          const vel = rasterMap.velocityValues ? rasterMap.velocityValues[idx] : null;
+          const coh = rasterMap.coherenceValues ? rasterMap.coherenceValues[idx] : 0.8;
+          const dem = rasterMap.demValues ? rasterMap.demValues[idx] : 1500;
+
+          const pixelCenterLat = b.north - (row + 0.5) * dLat;
+          const pixelCenterLon = b.west + (col + 0.5) * dLon;
+
+          setHoverInfo({
+            col,
+            row,
+            lat: parseFloat(pixelCenterLat.toFixed(4)),
+            lon: parseFloat(pixelCenterLon.toFixed(4)),
+            disp,
+            vel,
+            coh,
+            dem
+          });
+        } else {
+          setHoverInfo(null);
+        }
+      });
+
+      map.on("mouseout", () => {
+        setHoverInfo(null);
+      });
+
+      leafletMapRef.current = map;
+    }
+
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+      if (mapContainerRef.current) {
+        delete (mapContainerRef.current as any)._leaflet_id;
+      }
+      if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+      }
+    };
+  }, []);
+
+  // Update bounds when volcano changes
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    if (!map) return;
+
+    const b = volcano.bounds;
+    const leafletBounds = L.latLngBounds([b.south, b.west], [b.north, b.east]);
+    map.fitBounds(leafletBounds, { padding: [10, 10] });
+    setTimeout(scheduleScreenRender, 80);
+  }, [volcano, scheduleScreenRender]);
+
+  // Update Target Marker (Green Circle) and Reference Marker (Red Circle) matching screenshot
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    if (!map) return;
+
+    // Green Dot (Target)
+    if (selectedMarkerRef.current) {
+      selectedMarkerRef.current.setLatLng([selectedLat, selectedLon]);
+    } else {
+      const marker = L.circleMarker([selectedLat, selectedLon], {
+        radius: 4.5,
+        fillColor: "#00FF00",
+        fillOpacity: 1,
+        color: "#006600",
+        weight: 1.5
+      }).addTo(map);
+      selectedMarkerRef.current = marker;
+    }
+
+    // Red Dot (Reference Point)
+    const refLat = volcano.referencePoint.latitude;
+    const refLon = volcano.referencePoint.longitude;
+
+    if (refMarkerRef.current) {
+      refMarkerRef.current.setLatLng([refLat, refLon]);
+    } else {
+      const refMarker = L.circleMarker([refLat, refLon], {
+        radius: 4.5,
+        fillColor: "#FF0000",
+        fillOpacity: 1,
+        color: "#880000",
+        weight: 1.5
+      }).addTo(map);
+      refMarkerRef.current = refMarker;
+    }
+  }, [selectedLat, selectedLon, volcano]);
+
+  const b = volcano.bounds;
+  const latTicks = [13.3, 13.2, 13.1, 13.0, 12.9];
+  const lonTicks = [40.7, 40.8, 40.9, 41.0, 41.1];
+
+  return (
+    <div className="relative w-full h-full flex flex-col font-sans select-none bg-white">
+      
+      {/* 1. TOP KM SCALE BAR (Exact COMET layout: -20, -10, 0, 10, 20) */}
+      <div className="flex flex-col items-center justify-center pb-1 text-[#444444] text-[13px]">
+        <span className="font-normal text-[13px] mb-0.5">km</span>
+        <div className="w-full flex justify-between px-10 text-[12px] font-normal text-[#555555]">
+          <span>-20</span>
+          <span>-10</span>
+          <span>0</span>
+          <span>10</span>
+          <span>20</span>
+        </div>
+      </div>
+
+      {/* 2. MAIN MAP FRAME WITH AXES */}
+      <div className="relative flex-1 w-full flex items-stretch">
+        
+        {/* LEFT Y-AXIS: LATITUDE */}
+        <div className="w-10 flex flex-col justify-between items-end pr-1.5 py-2 text-[12.5px] text-[#444444] font-normal">
+          {latTicks.map((lat, idx) => (
+            <div key={idx} className="flex items-center gap-1">
+              <span>{lat.toFixed(1)}</span>
+              <span className="w-1.5 h-px bg-[#777777]" />
+            </div>
+          ))}
+        </div>
+
+        {/* ROTATED 'latitude' LABEL */}
+        <div className="absolute -left-7 top-1/2 -translate-y-1/2 -rotate-90 text-[13.5px] font-normal text-[#333333]">
+          latitude
+        </div>
+
+        {/* MAP CONTAINER */}
+        <div className="relative flex-1 h-full min-h-[380px] border border-[#CCCCCC] bg-[#E8ECE9] overflow-hidden">
+          <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-10" />
+          <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-15" />
+          <canvas ref={overlayCanvasRef} className="absolute inset-0 pointer-events-none z-16" />
+        </div>
+
+        {/* RIGHT Y-AXIS: KM (20, 10, 0, -10, -20) */}
+        <div className="w-12 flex flex-col justify-between items-start pl-1.5 py-2 text-[12px] text-[#555555]">
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-px bg-[#777777]" />
+            <span>20</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-px bg-[#777777]" />
+            <span>10</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-px bg-[#777777]" />
+            <span>0</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-px bg-[#777777]" />
+            <span>-10</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-px bg-[#777777]" />
+            <span>-20</span>
+          </div>
+        </div>
+
+        {/* ROTATED RIGHT 'km' LABEL */}
+        <div className="absolute -right-4 top-1/2 -translate-y-1/2 rotate-90 text-[13px] font-normal text-[#444444]">
+          km
+        </div>
+
+      </div>
+
+      {/* 3. BOTTOM X-AXIS: LONGITUDE TICKS & LABEL */}
+      <div className="flex flex-col items-center justify-center pt-1 pl-10 pr-12 text-[#444444]">
+        <div className="w-full flex justify-between text-[12.5px] font-normal text-[#444444]">
+          {lonTicks.map((lon, idx) => (
+            <div key={idx} className="flex flex-col items-center">
+              <span className="h-1.5 w-px bg-[#777777] mb-0.5" />
+              <span>{lon.toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+        <span className="font-normal text-[13.5px] text-[#333333] mt-1">longitude</span>
+      </div>
+
+    </div>
+  );
+};

@@ -1,0 +1,8 @@
+{
+  "name": "Real-Time Geospatial Earthquake and Volcanic Activity Monitoring System",
+  "description": "A real-time geospatial software platform for monitoring, visualizing, analyzing, and reporting earthquake and volcanic activity events in Ethiopia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

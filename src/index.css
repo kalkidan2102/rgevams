@@ -1,0 +1,512 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@variant dark (.dark &);
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+
+  --color-mongo-bg: #001E2B;
+  --color-mongo-panel: #002838;
+  --color-mongo-green: #00ED64;
+  --color-mongo-darkgreen: #023430;
+  --color-mongo-mint: #00D4FF;
+
+  --color-primary-blue: #0085C8;
+  --color-dark-navy: #030914;
+  --color-accent-cyan: #00D4FF;
+  --color-gold-custom: #CA933C;
+  --color-danger-custom: #D0232B;
+
+  --color-ssgi-blue: #0085C8;
+  --color-ssgi-gold: #CA933C;
+  --color-electric-blue: #00D4FF;
+  --color-obsidian-black: #001E2B;
+  --color-deep-navy: #002838;
+  --color-ssgi-red: #D0232B;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #030914;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0085C8;
+}
+
+/* High-tech Cyber Grid Background */
+.bg-tech-grid {
+  background-image: linear-gradient(to right, rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-dot-pattern {
+  background-image: radial-gradient(rgba(0, 212, 255, 0.12) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Glow Border & Glass Cards */
+.glass-panel-dark {
+  background: rgba(10, 22, 40, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 15px -3px rgba(0, 212, 255, 0.3);
+}
+
+.glow-orange-sm {
+  box-shadow: 0 0 15px -3px rgba(245, 158, 11, 0.3);
+}
+
+.glow-red-sm {
+  box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.4);
+}
+
+/* Radar Sweep Animation */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-radar {
+  animation: radar-sweep 6s linear infinite;
+}
+
+/* Leaflet Custom Overrides */
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+  background-color: #030914 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #091322 !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  border-bottom: 3px solid #ef4444 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: normal !important;
+}
+
+.leaflet-popup-tip {
+  background: #091322 !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+}
+
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  padding: 8px !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #00D4FF !important;
+}
+
+.leaflet-tooltip {
+  background: #091322 !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+}
+.dark .leaflet-tooltip {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #1e293b !important;
+}
+
+/* Custom Station Sparkline Tooltips */
+.leaflet-tooltip.custom-station-tooltip {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  font-weight: normal !important;
+  text-shadow: none !important;
+  opacity: 0.98 !important;
+}
+.dark .leaflet-tooltip.custom-station-tooltip {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #1e293b !important;
+}
+
+.leaflet-tooltip.custom-station-tooltip-red {
+  border-left: 4px solid #dc2626 !important;
+}
+.leaflet-tooltip.custom-station-tooltip-orange {
+  border-left: 4px solid #ea580c !important;
+}
+.leaflet-tooltip.custom-station-tooltip-yellow {
+  border-left: 4px solid #ca8a04 !important;
+}
+.leaflet-tooltip.custom-station-tooltip-green {
+  border-left: 4px solid #16a34a !important;
+}
+
+/* Elegant Light Zoom Controls */
+.leaflet-bar {
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+.dark .leaflet-bar {
+  border: 1px solid #1e293b !important;
+}
+
+.leaflet-bar a {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  transition: all 0.2s !important;
+}
+.dark .leaflet-bar a {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #f1f5f9 !important;
+  color: #e11d48 !important;
+}
+.dark .leaflet-bar a:hover {
+  background-color: #1e293b !important;
+  color: #fb7185 !important;
+}
+
+/* Pulsing highlight effect for selected tectonic target - Crimson Fire pulse */
+@keyframes geoPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4);
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+    box-shadow: 0 0 0 20px rgba(225, 29, 72, 0);
+  }
+}
+
+.pulse-glowing-ring {
+  border: 3.5px solid #e11d48;
+  border-radius: 50%;
+  animation: geoPulse 1.8s infinite ease-out;
+  background-color: rgba(225, 29, 72, 0.1);
+  pointer-events: none;
+}
+
+/* Custom Media Print Styles for Single-Page PDF Briefing Documents */
+@media print {
+  /* Set A4 page format and tight print margin */
+  @page {
+    size: A4 portrait;
+    margin: 0.8cm 1cm 0.8cm 1cm;
+  }
+
+  /* Completely hide the rest of the application */
+  #root {
+    display: none !important;
+  }
+
+  /* Force display of the React Portal-rendered print content */
+  .printable-report-wrapper {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: #0f172a !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  }
+
+  /* Ensure body layout is transparent and clean */
+  body {
+    background: white !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* High contrast light background for headers */
+  .print-report-container {
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Highly structured internal markdown tag styling for printed output */
+  .printable-content-body h2 {
+    color: #c2410c !important; /* Severe orange headers */
+    border-bottom: 2px solid #fed7aa !important;
+    font-size: 11.5pt !important;
+    font-weight: 800 !important;
+    margin-top: 12px !important;
+    margin-bottom: 5px !important;
+    padding-bottom: 2px !important;
+    page-break-after: avoid;
+  }
+
+  .printable-content-body h3 {
+    color: #0f172a !important;
+    border-left: 3.5px solid #f97316 !important;
+    font-size: 10pt !important;
+    font-weight: 700 !important;
+    margin-top: 10px !important;
+    margin-bottom: 4px !important;
+    padding-left: 6px !important;
+    page-break-after: avoid;
+  }
+
+  .printable-content-body h4 {
+    color: #334155 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+    margin-top: 8px !important;
+    margin-bottom: 3px !important;
+    padding-bottom: 1px !important;
+    page-break-after: avoid;
+  }
+
+  .printable-content-body p {
+    font-size: 8pt !important;
+    color: #334155 !important;
+    margin-top: 3px !important;
+    margin-bottom: 3px !important;
+    line-height: 1.35 !important;
+  }
+
+  .printable-content-body ul, 
+  .printable-content-body ol {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+    padding-left: 4px !important;
+    page-break-inside: avoid;
+  }
+
+  .printable-content-body li {
+    font-size: 8pt !important;
+    color: #334155 !important;
+    margin-bottom: 1.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  .printable-content-body strong {
+    color: #020617 !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    font-weight: 700 !important;
+  }
+
+  /* Hide custom borders or backgrounds inside list items on print */
+  .printable-content-body strong {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Clear gaps and page overrun preventers */
+  .printable-content-body {
+    page-break-inside: auto;
+  }
+}
+
+/* Glassmorphism & High-tech interactive effects inspired by COMET NERC */
+.comet-glass-card {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.comet-glass-card:hover {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(202, 147, 60, 0.35); /* ssgi-gold subtle border on hover */
+  box-shadow: 0 12px 30px rgba(202, 147, 60, 0.08), 0 0 0 1px rgba(202, 147, 60, 0.1) inset;
+  transform: translateY(-2px);
+}
+
+/* Premium Dark Mode support for Glassmorphism */
+.dark .comet-glass-card {
+  background: rgba(11, 12, 16, 0.55); /* Obsidian Black base transparent */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.dark .comet-glass-card:hover {
+  background: rgba(31, 40, 51, 0.45); /* Deep Navy transparent hover */
+  border-color: rgba(201, 166, 70, 0.45); /* ESSGI Gold (#C9A646) hover border */
+  box-shadow: 0 12px 40px rgba(201, 166, 70, 0.15), 0 0 0 1px rgba(201, 166, 70, 0.25) inset;
+}
+
+/* Glowing Neon Borders & Micro-interactions */
+.comet-neon-glow-gold {
+  filter: drop-shadow(0 0 6px rgba(201, 166, 70, 0.4));
+}
+
+.comet-neon-glow-blue {
+  filter: drop-shadow(0 0 6px rgba(58, 190, 255, 0.5));
+}
+
+.comet-premium-btn {
+  background: linear-gradient(135deg, rgba(31, 40, 51, 0.8), rgba(11, 12, 16, 0.95));
+  border: 1px solid rgba(201, 166, 70, 0.3);
+  color: #F5F5F5;
+  transition: all 0.3s ease;
+}
+
+.comet-premium-btn:hover {
+  border-color: #C9A646;
+  box-shadow: 0 0 15px rgba(201, 166, 70, 0.35);
+  transform: scale(1.03);
+}
+
+.comet-glowing-indicator {
+  position: relative;
+}
+
+.comet-glowing-indicator::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(202, 147, 60, 0.4), rgba(27, 77, 107, 0.2));
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.comet-glowing-indicator:hover::after {
+  opacity: 1;
+}
+
+/* Custom continuous pulse for geodetic stations */
+@keyframes geodeticGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(58, 190, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(58, 190, 255, 0);
+  }
+}
+
+.comet-geodetic-pulse {
+  animation: geodeticGlow 2s infinite ease-in-out;
+}
+
+/* ==========================================
+   ESSGI GEOSPATIAL PLATFORM STYLING & ACCENTS
+   ========================================== */
+
+/* Seismic Dotted Grid Background */
+.seismic-grid-light {
+  background-color: #ffffff;
+  background-image: none;
+}
+
+.dark .seismic-grid-dark {
+  background-image: radial-gradient(rgba(0, 212, 255, 0.12) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Seismic Glowing Border & Glass Cards */
+.seismic-glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(0, 133, 200, 0.05);
+}
+
+.dark .seismic-glass-card {
+  background: rgba(4, 27, 45, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.5);
+}
+
+/* Seismic Model Selector & Pill Accent */
+.seismic-model-pill {
+  background: linear-gradient(135deg, rgba(0, 133, 200, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
+  border: 1px solid rgba(0, 133, 200, 0.2);
+}
+
+.dark .seismic-model-pill {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.12) 0%, rgba(168, 85, 247, 0.15) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+/* Seismic Gradient Shimmer Text */
+.seismic-gradient-text {
+  background: linear-gradient(135deg, #0085C8 0%, #8B5CF6 50%, #EC4899 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .seismic-gradient-text {
+  background: linear-gradient(135deg, #00D4FF 0%, #A855F7 50%, #F43F5E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Seismic Glowing Pulse Indicator */
+@keyframes seismicPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(0, 212, 255, 0);
+  }
+}
+
+.seismic-glow-dot {
+  animation: seismicPulse 2s infinite ease-in-out;
+}
+
+
+

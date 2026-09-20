@@ -1,0 +1,103 @@
+export interface IEarthquake {
+  id: string;
+  magnitude: number;
+  location: string;
+  coordinates: [number, number]; // [lat, lng]
+  depth: number;
+  dateTime: string;
+  severity: "Red" | "Orange" | "Yellow" | "Green" | string;
+  description: string;
+  isHistorical?: boolean;
+}
+
+export const defaultEarthquakes: IEarthquake[] = [
+  {
+    id: "eq_aug_2024_awash",
+    magnitude: 4.9,
+    location: "Awash Basin & Fentale Graben, Main Ethiopian Rift",
+    coordinates: [8.98, 39.95],
+    depth: 10,
+    dateTime: "2024-08-25T19:42:15.000Z",
+    severity: "Orange",
+    description: "Prominent August 2024 Main Ethiopian Rift tectonic tremor. Strongly felt in Addis Ababa (180 km away), Adama/Nazareth, and Metehara. Peak dominant spectral frequency 2.4 Hz with clear P-to-S phase arrival lag of 22.4 seconds at IU.FURI station.",
+    isHistorical: true
+  },
+  {
+    id: "eq_aug_2024_semera",
+    magnitude: 4.5,
+    location: "Semera Graben, Afar Triple Junction",
+    coordinates: [11.78, 41.05],
+    depth: 8,
+    dateTime: "2024-08-14T08:18:22.000Z",
+    severity: "Orange",
+    description: "August 2024 Afar crustal rifting swarm near Semera. Triggered localized rockfalls on western marginal escarpment faults. Characteristic high-frequency onset (3.8 Hz).",
+    isHistorical: true
+  },
+  {
+    id: "eq_hist_1",
+    magnitude: 6.3,
+    location: "Dobi Graben, Afar Region",
+    coordinates: [11.80, 40.80],
+    depth: 15,
+    dateTime: "1989-08-20T11:15:32.000Z",
+    severity: "Red",
+    description: "Major August 1989 Dobi Graben earthquake swarm (M 6.3). Severely damaged the regional highway bridges connecting Addis Ababa to Assab port. Caused multiple landslides.",
+    isHistorical: true
+  },
+  {
+    id: "eq_aug_2023_dofen",
+    magnitude: 4.2,
+    location: "Mount Dofen Caldera Flank, Afar/Amhara",
+    coordinates: [9.35, 40.12],
+    depth: 6,
+    dateTime: "2023-08-19T14:30:00.000Z",
+    severity: "Yellow",
+    description: "August 2023 shallow magmatic tremor associated with subsurface basaltic dike propagation near Mount Dofen volcano.",
+    isHistorical: true
+  },
+  {
+    id: "eq_hist_2",
+    magnitude: 6.2,
+    location: "Serdo Town, Afar Region",
+    coordinates: [11.90, 41.30],
+    depth: 10,
+    dateTime: "1969-03-29T07:23:11.000Z",
+    severity: "Red",
+    description: "Completely destroyed the historical town of Serdo, resulting in casualties and widespread ground deformation fissures.",
+    isHistorical: true
+  },
+  {
+    id: "eq_hist_3",
+    magnitude: 5.6,
+    location: "Dabbahu Fissure, Afar",
+    coordinates: [12.60, 40.50],
+    depth: 5,
+    dateTime: "2005-09-24T18:32:00.000Z",
+    severity: "Orange",
+    description: "Directly triggered by dyke intrusion, this seismic event marked the start of the massive 60km rifting fissure opening near Dabbahu.",
+    isHistorical: true
+  },
+  {
+    id: "eq_hist_4",
+    magnitude: 4.9,
+    location: "Fentale-Awash Swarm",
+    coordinates: [8.97, 39.93],
+    depth: 10,
+    dateTime: "2024-10-06T02:11:45.000Z",
+    severity: "Yellow",
+    description: "Part of a massive tectonic tremor swarm that was strongly felt in Addis Ababa, inducing fear. Cracked several buildings in Metehara and Wanji.",
+    isHistorical: true
+  },
+  {
+    id: "eq_hist_5",
+    magnitude: 4.8,
+    location: "Wondo Genet, Rift Valley",
+    coordinates: [7.10, 38.60],
+    depth: 12,
+    dateTime: "2016-11-20T14:45:00.000Z",
+    severity: "Yellow",
+    description: "Shallow earthquake in the central rift. Caused shaking in Awassa and minor structural damage in local institutions.",
+    isHistorical: true
+  }
+];
+

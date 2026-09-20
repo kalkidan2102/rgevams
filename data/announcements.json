@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ann-sarc-2026",
+    "code": "ESSGI-CONF-2026-01",
+    "title": "S-ARC2026: 4th International South-East Africa Rift Geohazards Conference",
+    "category": "Conference",
+    "date": "July 28, 2026",
+    "deadline": "September 15, 2026",
+    "organizer": "Ethiopian Space Science & Geodesy Institute (ESSGI) & USGS",
+    "location": "African Union Conference Center, Addis Ababa, Ethiopia",
+    "summary": "Call for abstracts and registration for the biennial South-East Africa Rift Conference focusing on real-time seismic array integration, volcano eruption early warnings, and GNSS crustal strain dynamics.",
+    "fullDetails": "ESSGI invites international geophysicists, volcanologists, geodesists, and disaster risk managers to register for the S-ARC2026 Conference. The theme is 'Strengthening Rift Basin Resiliency through Integrated Earth Observation Telemetry'.",
+    "requirements": [
+      "Abstract submission deadline: September 15, 2026",
+      "Early bird registration discount closes: August 30, 2026",
+      "Student fellowship travel grants available for East African researchers"
+    ],
+    "contactEmail": "s-arc2026@essgi.gov.et",
+    "status": "OPEN"
+  },
+  {
+    "id": "ann-grants-2026",
+    "code": "ESSGI-GRANT-2026-04",
+    "title": "National Geohazard & Volcanic Rift Dynamics Research Fellowships",
+    "category": "Grant",
+    "date": "July 25, 2026",
+    "deadline": "October 01, 2026",
+    "organizer": "ESSGI Directorate of Postgraduate R&D",
+    "location": "Addis Ababa & Entoto Observatory Research Center",
+    "summary": "Funding opportunity offering up to 2.5 Million ETB for doctoral and post-doctoral researchers studying Afar rift opening or Erta Ale magmatic flux.",
+    "fullDetails": "The Ethiopian Space Science & Geodesy Institute announces 12 competitive research grants for post-graduate researchers. Awardees will receive full access to ESSGI broadband seismic station raw wave data.",
+    "requirements": [
+      "Principal Investigator must be affiliated with an accredited Ethiopian higher education institution",
+      "Research proposal must align with national geohazard safety priorities"
+    ],
+    "contactEmail": "grants-rd@essgi.gov.et",
+    "status": "OPEN"
+  },
+  {
+    "id": "ann-tender-2026",
+    "code": "ESSGI-TENDER-2026-09",
+    "title": "Tender for Expansion of High-Rate GNSS Geodetic Receivers & Seismic Array",
+    "category": "Tender",
+    "date": "July 20, 2026",
+    "deadline": "August 25, 2026",
+    "organizer": "ESSGI Procurement & Technical Telemetry Directorate",
+    "location": "ESSGI HQ Procurement Office, Addis Ababa",
+    "summary": "International competitive bid for supplying 14 multi-constellation GNSS reference receivers and 8 broadband 120s seismometers.",
+    "fullDetails": "ESSGI solicits sealed bids from qualified international manufacturers for the supply, delivery, and calibration of continuous GNSS geodetic reference stations.",
+    "requirements": [
+      "Bidder must submit a 2% bid security guarantee from a recognized commercial bank",
+      "Compliance with ISO 9001 quality standards and minimum 3-year hardware warranty"
+    ],
+    "contactEmail": "tenders@essgi.gov.et",
+    "status": "URGENT"
+  }
+]

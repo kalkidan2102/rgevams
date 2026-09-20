@@ -1,0 +1,110 @@
+export interface NewsItem {
+  id: string;
+  dispatchCode: string;
+  title: string;
+  excerpt: string;
+  fullText: string;
+  date: string;
+  category: string;
+  tag: string;
+  readTime: string;
+  author: string;
+  location: string;
+  keyFindings: string[];
+  recommendations: string[];
+}
+
+export const LATEST_NEWS: NewsItem[] = [
+  {
+    id: "news-1",
+    dispatchCode: "ESSGI-BULLETIN-2026-089",
+    title: "Erta Ale Lava Lake Activity Swells: Satellite Thermal Sensors Detect Fissure Flux",
+    excerpt: "ESSGI orbital telemetry captures elevated thermal radiation signatures over Erta Ale's southern caldera pit, alerting geology field crews to prepare continuous volcanic gas monitoring.",
+    fullText: "Orbital radiometric sensors aboard Sentinel-2 and VIIRS have recorded a pronounced thermal anomaly expansion across the southern caldera pit of Erta Ale volcano (13.60° N, 40.67° E). Infrared radiance values exceeded 480°C equivalent blackbody temperature, indicating active lava lake overturning and localized fissure effusion within the crater floor. Ground observation teams from Semera Field Base report increased SO2 gas venting and minor fountaining. ESSGI volcanologists recommend maintaining a 3-kilometer safety perimeter around the summit rim for field researchers and local guides.",
+    date: "July 08, 2026",
+    category: "Volcanology",
+    tag: "Urgent Alert",
+    readTime: "4 min read",
+    author: "Directorate of Volcanology & Geothermal Hazards",
+    location: "Erta Ale Volcano, Danakil Depression, Afar Region",
+    keyFindings: [
+      "Thermal infrared radiance surge detected at 13.60° N, 40.67° E",
+      "Active lava lake level elevated by ~4.2 meters inside pit crater",
+      "SO2 gas discharge rate measured at 2,400 tons/day via COSPEC ground arrays"
+    ],
+    recommendations: [
+      "Enforce a 3km exclusion zone around Erta Ale summit caldera",
+      "Issue aviation warning advisory (VONA) for low-altitude charter routes",
+      "Deploy mobile gas monitoring unit from Semera field headquarters"
+    ]
+  },
+  {
+    id: "news-2",
+    dispatchCode: "ESSGI-BULLETIN-2026-085",
+    title: "USGS & ESSGI Integrate High-Frequency Real-time Earthquake Stream APIs",
+    excerpt: "A direct seismic streaming pipeline from the USGS geohazards server is successfully linked to our active GIS map room, ensuring sub-second georisk alerts across central rift zones.",
+    fullText: "The Geodynamics and Seismological Telemetry Division has finalized a high-speed WebSocket and REST streaming link connecting USGS Global Seismic Network feeds with ESSGI's internal Furi Seismological Observatory servers. This automated ingest normalizes global event magnitudes (Mw, mb, Ms) with local Ethiopian Rift velocity models (FURI 1D Earth model). In the event of micro-tremor swarms along the Hawassa or Adama grabens, event hypocenters are localized within <8 seconds, triggering automatic risk alerts on the GIS Geo-Portal.",
+    date: "July 05, 2026",
+    category: "Seismology",
+    tag: "API Integration",
+    readTime: "3 min read",
+    author: "Geodynamics & Seismological Telemetry Division",
+    location: "Main Ethiopian Rift (Adama-Hawassa Corridor)",
+    keyFindings: [
+      "Sub-second event detection latency across East African Rift System",
+      "Unified magnitude calibration matching FURI broadband station telemetry",
+      "Automatic hypocentral depth mapping for depth-dependent risk modeling"
+    ],
+    recommendations: [
+      "Incorporate USGS real-time feeds into regional emergency dispatch rooms",
+      "Automate SMS alert triggers for events exceeding M >= 4.0 in populated grabens",
+      "Conduct weekly latency audits between Furi station and global data centers"
+    ]
+  },
+  {
+    id: "news-3",
+    dispatchCode: "ESSGI-BULLETIN-2026-078",
+    title: "Entoto Astronomical Observatory Enhances Atmospheric Water Vapor GNSS Corrections",
+    excerpt: "Joint study by Addis Ababa University shows that high-altitude geodetic stations can correct GPS rifting drift rates by accounting for tropospheric column delays over the Rift Basin.",
+    fullText: "Researchers at Entoto Astronomical Observatory (3,200m ASL) in collaboration with the Department of Physics at Addis Ababa University have published breakthrough calibration models for satellite geodetic stations. By utilizing co-located water vapor radiometers and high-precision GNSS receivers, tropospheric column path delays—previously masking micro-millimeter crustal extension along the Nubia-Somalia plate boundary—can now be subtracted with 98.4% precision.",
+    date: "June 28, 2026",
+    category: "Space Science",
+    tag: "Research",
+    readTime: "6 min read",
+    author: "Directorate of Space Science & Satellite Navigation",
+    location: "Entoto Observatory, Addis Ababa (3,200m ASL)",
+    keyFindings: [
+      "Tropospheric delay calibration accuracy improved to 98.4%",
+      "Sub-millimeter rifting vector accuracy confirmed across Central MER",
+      "Published in African Journal of Space Science & Geodesy"
+    ],
+    recommendations: [
+      "Apply tropospheric correction code across all 18 permanent GNSS stations",
+      "Share geodetic velocity vectors with international geodynamics consortia",
+      "Upgrade radio receiver arrays at Entoto Observatory station"
+    ]
+  },
+  {
+    id: "news-4",
+    dispatchCode: "ESSGI-BULLETIN-2026-062",
+    title: "Bilingual Mobile Early Warning SMS App Tested for Afar Pastoralists",
+    excerpt: "In partnership with the Disaster Risk Management Commission, automatic SMS alerts in Afar and Amharic are pushed to regions experiencing tectonic micro-tremor swarms.",
+    fullText: "ESSGI's Geospatial Intelligence & Civil Safety team, working alongside the National Disaster Risk Management Commission (DRMC), has deployed a bilingual mobile alert gateway. The system transmits immediate safety advisories translated in Afar and Amharic via Ethio Telecom cell towers whenever seismic arrays register localized tremor clusters above M 3.5 or crater vent degassing. During recent field tests in the Semera and Mille woredas, delivery latency averaged under 12 seconds.",
+    date: "June 15, 2026",
+    category: "Disaster Preparedness",
+    tag: "Community",
+    readTime: "5 min read",
+    author: "Directorate of Geospatial Intelligence & Civil Safety",
+    location: "Semera & Mille Woredas, Afar Regional State",
+    keyFindings: [
+      "Average SMS broadcast latency of 11.4 seconds across 45,000 active subscribers",
+      "100% translation fidelity verified by Afar Language Culture Bureau",
+      "Integrated with DRMC regional emergency coordination centers"
+    ],
+    recommendations: [
+      "Expand subscriber registration to Oromia and SNNPR rift corridor communities",
+      "Incorporate Voice-IVR broadcasts for non-literate rural pastoralists",
+      "Conduct quarterly emergency drill simulations with local administration heads"
+    ]
+  }
+];

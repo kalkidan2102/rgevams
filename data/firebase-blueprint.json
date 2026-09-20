@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "earthquakes": {
+      "title": "Earthquakes",
+      "description": "Seismic event catalog monitored by SSGI",
+      "properties": {
+        "magnitude": { "type": "number" },
+        "location": { "type": "string" },
+        "coordinates": { "type": "array" },
+        "depth": { "type": "number" },
+        "dateTime": { "type": "string" },
+        "severity": { "type": "string" },
+        "description": { "type": "string" },
+        "isHistorical": { "type": "boolean" }
+      },
+      "required": ["magnitude", "location", "dateTime", "severity"]
+    },
+    "volcanoes": {
+      "title": "Volcanoes",
+      "description": "Volcanic alert and activity tracking catalog",
+      "properties": {
+        "name": { "type": "string" },
+        "region": { "type": "string" },
+        "elevation": { "type": "number" },
+        "coordinates": { "type": "array" },
+        "type": { "type": "string" },
+        "activityType": { "type": "string" },
+        "severity": { "type": "string" },
+        "lastErupted": { "type": "string" },
+        "description": { "type": "string" },
+        "monitoredBy": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "region", "severity"]
+    },
+    "gnss_stations": {
+      "title": "GNSS Stations",
+      "description": "Geodetic station crustal velocity measurements",
+      "properties": {
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "coordinates": { "type": "array" },
+        "velocityNorth": { "type": "number" },
+        "velocityEast": { "type": "number" },
+        "velocityUp": { "type": "number" },
+        "monitoredBy": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name", "location"]
+    },
+    "users": {
+      "title": "User Accounts",
+      "description": "Registered institute personnel, staff, and officials",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "institution": { "type": "string" },
+        "registeredAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "audit_logs": {
+      "title": "Audit Logs",
+      "description": "Action logs recorded by administrators and staff",
+      "properties": {
+        "action": { "type": "string" },
+        "volcanoId": { "type": "string" },
+        "volcanoName": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "performedByEmail": { "type": "string" },
+        "performedByRole": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["action", "performedBy", "timestamp"]
+    },
+    "alerts": {
+      "title": "Geological Alerts",
+      "description": "Realtime active hazard warnings and advisories",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "severity": { "type": "string" },
+        "location": { "type": "string" },
+        "description": { "type": "string" },
+        "dateTime": { "type": "string" }
+      },
+      "required": ["title", "severity", "dateTime"]
+    }
+  }
+}

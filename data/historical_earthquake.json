@@ -1,0 +1,128 @@
+[
+  {
+    "id": "us6000tjgf",
+    "magnitude": 4.6,
+    "location": "Southern Afar Region (13 km ENE of Metahāra / Awash)",
+    "coordinates": [
+      8.9506,
+      40.03
+    ],
+    "depth": 10,
+    "dateTime": "2026-08-09T17:11:43.006Z",
+    "severity": "Orange",
+    "description": "Moderate M 4.6 tectonic earthquake struck the southern part of the Afar Region near Awash and Metehara on August 9, 2026. Felt across the Awash basin, Metehara, and Adama. No significant seismic events have been reported around Semera / Central Afar.",
+    "isHistorical": false
+  },
+  {
+    "id": "eq_aug_2024_awash",
+    "magnitude": 4.9,
+    "location": "Awash Basin & Fentale Graben, Main Ethiopian Rift",
+    "coordinates": [
+      8.98,
+      39.95
+    ],
+    "depth": 10,
+    "dateTime": "2024-08-25T19:42:15.000Z",
+    "severity": "Orange",
+    "description": "Prominent August 2024 Main Ethiopian Rift tectonic tremor. Strongly felt in Addis Ababa (180 km away), Adama/Nazareth, and Metehara. Peak dominant spectral frequency 2.4 Hz with clear P-to-S phase arrival lag of 22.4 seconds at IU.FURI station.",
+    "isHistorical": true
+  },
+  {
+    "id": "eq_aug_2024_semera",
+    "magnitude": 4.5,
+    "location": "Semera Graben, Afar Triple Junction",
+    "coordinates": [
+      11.78,
+      41.05
+    ],
+    "depth": 8,
+    "dateTime": "2024-08-14T08:18:22.000Z",
+    "severity": "Orange",
+    "description": "August 2024 Afar crustal rifting swarm near Semera. Triggered localized rockfalls on western marginal escarpment faults. Characteristic high-frequency onset (3.8 Hz).",
+    "isHistorical": true
+  },
+  {
+    "id": "eq_hist_1",
+    "magnitude": 6.3,
+    "location": "Dobi Graben, Afar Region",
+    "coordinates": [
+      11.8,
+      40.8
+    ],
+    "depth": 15,
+    "dateTime": "1989-08-20T11:15:32.000Z",
+    "severity": "Red",
+    "description": "Major August 1989 Dobi Graben earthquake swarm (M 6.3). Severely damaged the regional highway bridges connecting Addis Ababa to Assab port. Caused multiple landslides.",
+    "isHistorical": true
+  },
+  {
+    "id": "eq_aug_2023_dofen",
+    "magnitude": 4.2,
+    "location": "Mount Dofen Caldera Flank, Afar/Amhara",
+    "coordinates": [
+      9.35,
+      40.12
+    ],
+    "depth": 6,
+    "dateTime": "2023-08-19T14:30:00.000Z",
+    "severity": "Yellow",
+    "description": "August 2023 shallow magmatic tremor associated with subsurface basaltic dike propagation near Mount Dofen volcano.",
+    "isHistorical": true
+  },
+  {
+    "id": "eq_hist_2",
+    "magnitude": 6.2,
+    "location": "Serdo Town, Afar Region",
+    "coordinates": [
+      11.9,
+      41.3
+    ],
+    "depth": 10,
+    "dateTime": "1969-03-29T07:23:11.000Z",
+    "severity": "Red",
+    "description": "Completely destroyed the historical town of Serdo, resulting in casualties and widespread ground deformation fissures.",
+    "isHistorical": true
+  },
+  {
+    "id": "eq_hist_3",
+    "magnitude": 5.6,
+    "location": "Dabbahu Fissure, Afar",
+    "coordinates": [
+      12.6,
+      40.5
+    ],
+    "depth": 5,
+    "dateTime": "2005-09-24T18:32:00.000Z",
+    "severity": "Orange",
+    "description": "Directly triggered by dyke intrusion, this seismic event marked the start of the massive 60km rifting fissure opening near Dabbahu.",
+    "isHistorical": true
+  },
+  {
+    "id": "eq_hist_4",
+    "magnitude": 4.9,
+    "location": "Fentale-Awash Swarm",
+    "coordinates": [
+      8.97,
+      39.93
+    ],
+    "depth": 10,
+    "dateTime": "2024-10-06T02:11:45.000Z",
+    "severity": "Yellow",
+    "description": "Part of a massive tectonic tremor swarm that was strongly felt in Addis Ababa, inducing fear. Cracked several buildings in Metehara and Wanji.",
+    "isHistorical": true
+  },
+  {
+    "id": "eq_hist_5",
+    "magnitude": 4.8,
+    "location": "Wondo Genet, Rift Valley",
+    "coordinates": [
+      7.1,
+      38.6
+    ],
+    "depth": 12,
+    "dateTime": "2016-11-20T14:45:00.000Z",
+    "severity": "Yellow",
+    "description": "Shallow earthquake in the central rift. Caused shaking in Awassa and minor structural damage in local institutions.",
+    "isHistorical": true
+  }
+]
