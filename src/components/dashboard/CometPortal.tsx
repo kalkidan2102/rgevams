@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import L from "leaflet";
+import "../../lib/LeafletFix.ts";
 import { Volcano, Earthquake, SelectedItem, SeverityLevel, GnssStation } from "../../types";
 import { ETHIOPIA_GNSS_STATIONS, FALLBACK_EARTHQUAKES } from "../../data/earthquakes";
 
@@ -226,6 +228,68 @@ const GoogleEarth3DControlPanel = ({
   const [viewMode, setViewMode] = useState<"optical" | "insar" | "thermal">("optical");
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
+  const [mapSource, setMapSource] = useState<"sentinel" | "google">("sentinel");
+
+  const leafletContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const mapMarkerRef = useRef<L.CircleMarker | null>(null);
+
+  // Initialize and update CORS-safe Leaflet satellite map (works in VS Code, localhost, iframe)
+  useEffect(() => {
+    if (mapSource !== "sentinel" || !leafletContainerRef.current) return;
+
+    if (!mapInstanceRef.current) {
+      if ((leafletContainerRef.current as any)._leaflet_id) {
+        delete (leafletContainerRef.current as any)._leaflet_id;
+      }
+
+      const map = L.map(leafletContainerRef.current, {
+        center: [lat, lng],
+        zoom: zoom,
+        zoomControl: false,
+        attributionControl: false,
+      });
+
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 19,
+      }).addTo(map);
+
+      const marker = L.circleMarker([lat, lng], {
+        radius: 8,
+        color: "#00D4FF",
+        fillColor: "#00D4FF",
+        fillOpacity: 0.85,
+        weight: 2,
+      }).addTo(map);
+
+      mapMarkerRef.current = marker;
+      mapInstanceRef.current = map;
+    } else {
+      try {
+        mapInstanceRef.current.setView([lat, lng], zoom, { animate: false });
+        if (mapMarkerRef.current) {
+          mapMarkerRef.current.setLatLng([lat, lng]);
+        }
+      } catch {}
+    }
+
+    return () => {
+      // Map cleanup handled on source switch or unmount
+    };
+  }, [lat, lng, zoom, mapSource]);
+
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.stop();
+          mapInstanceRef.current.remove();
+        } catch {}
+        mapInstanceRef.current = null;
+        mapMarkerRef.current = null;
+      }
+    };
+  }, [mapSource]);
   
   // High-tech terminal telemetry feed
   const [terminalLogs, setTerminalLogs] = useState<string[]>([
@@ -310,19 +374,34 @@ const GoogleEarth3DControlPanel = ({
   return (
     <div className="bg-slate-950 text-white rounded-3xl border border-[#00D4FF]/25 shadow-2xl overflow-hidden flex flex-col lg:flex-row h-auto lg:h-[520px]">
       
-      {/* 3D Google Earth Frame Container */}
-      <div className="flex-grow relative h-[320px] lg:h-full lg:w-3/5 bg-slate-900 border-b lg:border-b-0 lg:border-r border-white/10 overflow-hidden">
-        
-        {/* The Map Iframe with interactive Geologist Filter overlays */}
-        <div className="w-full h-full relative" style={{ filter: getFilterStyle() }}>
-          <iframe
-            src={embedUrl}
-            className="w-full h-full border-0 select-none transition-all duration-300"
-            title="Interactive Google Earth Satellite Portal"
-            allowFullScreen
-            referrerPolicy="no-referrer"
+      {/* 3D Google Earth / Satellite Frame Container */}
+      <div 
+        className="flex-grow relative h-[320px] lg:h-full lg:w-3/5 bg-slate-900 border-b lg:border-b-0 lg:border-r border-white/10 overflow-hidden"
+        style={{
+          backgroundImage: "radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%)"
+        }}
+      >
+        {/* Layer 1: Leaflet High-Res Satellite Map (CORS-safe, works seamlessly in VS Code, localhost, or webviews) */}
+        {mapSource === "sentinel" && (
+          <div 
+            ref={leafletContainerRef} 
+            className="w-full h-full relative z-0 select-none"
+            style={{ filter: getFilterStyle() }}
           />
-        </div>
+        )}
+
+        {/* Layer 2: Google Maps Embed (when explicitly chosen) */}
+        {mapSource === "google" && (
+          <div className="w-full h-full relative z-0" style={{ filter: getFilterStyle() }}>
+            <iframe
+              src={embedUrl}
+              className="w-full h-full border-0 select-none transition-all duration-300"
+              title="Interactive Google Earth Satellite Portal"
+              allowFullScreen
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        )}
 
         {/* Dynamic Horizontal Laser Scanning Sweep Overlay */}
         {isScanning && (
@@ -340,20 +419,58 @@ const GoogleEarth3DControlPanel = ({
         )}
 
         {/* High-Tech Geologist HUD Overlay */}
-        <div className="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between font-mono text-[9px] text-cyan-400">
+        <div className="absolute inset-0 pointer-events-none p-4 flex flex-col justify-between font-mono text-[9px] text-cyan-400 z-10">
           {/* Top Corners HUD */}
-          <div className="flex justify-between items-start">
-            <div className="bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 p-2 rounded-lg pointer-events-auto flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isScanning ? "bg-cyan-400" : "bg-emerald-400"}`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${isScanning ? "bg-cyan-500" : "bg-emerald-500"}`}></span>
-              </span>
-              <span className="font-bold uppercase text-slate-300">
-                {isScanning ? `SCANNING TECTONIC FIELD: ${scanProgress}%` : "SAT_STREAM LOCKED"}
-              </span>
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="bg-slate-950/90 backdrop-blur-md border border-cyan-500/30 px-2.5 py-1 rounded-lg pointer-events-auto flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isScanning ? "bg-cyan-400" : "bg-emerald-400"}`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isScanning ? "bg-cyan-500" : "bg-emerald-500"}`}></span>
+                </span>
+                <span className="font-bold uppercase text-slate-300 text-[10px]">
+                  {isScanning ? `SCANNING TECTONIC FIELD: ${scanProgress}%` : "SAT_STREAM LOCKED"}
+                </span>
+              </div>
+
+              {/* Satellite Feed Engine Switcher */}
+              <div className="bg-slate-950/90 backdrop-blur-md border border-white/15 p-0.5 rounded-lg pointer-events-auto flex items-center gap-1">
+                <button
+                  onClick={() => setMapSource("sentinel")}
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                    mapSource === "sentinel"
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                  title="Direct Satellite Imagery (CORS Safe - Works in VS Code & localhost)"
+                >
+                  🛰️ Satellite
+                </button>
+                <button
+                  onClick={() => setMapSource("google")}
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                    mapSource === "google"
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                  title="Google Maps Satellite Embed"
+                >
+                  🌐 Google Embed
+                </button>
+                <a
+                  href={googleEarthUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-0.5 rounded text-[9px] font-bold text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-all flex items-center gap-0.5 pointer-events-auto"
+                  title="Open 3D WebGL Google Earth in external window"
+                >
+                  <span>3D Earth</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              </div>
             </div>
 
-            <div className="bg-slate-950/80 backdrop-blur-md border border-white/10 p-2 rounded-lg text-right">
+            <div className="bg-slate-950/90 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg text-right">
               <div>LAT: {lat.toFixed(6)}°N</div>
               <div>LNG: {lng.toFixed(6)}°E</div>
             </div>
@@ -786,21 +903,21 @@ export default function CometPortal({ item, volcanoes, earthquakes, onBack }: Co
     if (!item) return null;
 
     if (item.type === "volcano") {
-      return volcanoes.find((v) => v.id === item.id) || null;
+      return volcanoes.find((v) => v?.id === item.id) || null;
     } else if (item.type === "gnss") {
-      return ETHIOPIA_GNSS_STATIONS.find((st) => st.id === item.id) || null;
+      return ETHIOPIA_GNSS_STATIONS.find((st) => st?.id === item.id) || null;
     } else if (item.type === "earthquake") {
       // 1. Direct earthquake list lookup
-      const direct = earthquakes.find((eq) => eq.id === item.id);
+      const direct = earthquakes.find((eq) => eq?.id === item.id);
       if (direct) return direct;
 
       // 2. Fallback earthquake list lookup
-      const fallback = FALLBACK_EARTHQUAKES.find((eq) => eq.id === item.id);
+      const fallback = FALLBACK_EARTHQUAKES.find((eq) => eq?.id === item.id);
       if (fallback) return fallback;
 
       // 3. Node code lookup (e.g. ET.TURM, DJ.ARTA, ET.AWAS, ET.SEME, etc.)
       const matchedNode = REGIONAL_NODES.find(
-        (n) => n.code === item.id || n.code.toLowerCase().includes(item.id.toLowerCase())
+        (n) => n?.code === item.id || (n?.code && item.id && n.code.toLowerCase().includes(item.id.toLowerCase()))
       );
       if (matchedNode) {
         return {
@@ -817,7 +934,7 @@ export default function CometPortal({ item, volcanoes, earthquakes, onBack }: Co
       }
 
       // 4. GNSS station match
-      const matchedGnss = ETHIOPIA_GNSS_STATIONS.find((st) => st.id === item.id);
+      const matchedGnss = ETHIOPIA_GNSS_STATIONS.find((st) => st?.id === item.id);
       if (matchedGnss) {
         return {
           id: matchedGnss.id,

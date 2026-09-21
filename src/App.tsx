@@ -33,9 +33,13 @@ import {
 } from "./components/home/InstitutionalPages";
 import { SectorDetailModal } from "./components/Modals/SectorModal";
 import { AnnouncementDetailModal } from "./components/Modals/AnnouncementModal";
+
+
 import { generateSmartTremorAlert, SmartTremorAlertData } from "./lib/smartTremorAlert";
 import SuperAdminDashboard from "./components/admin/SuperAdminDashboard";
 import { StaffDashboard } from "./components/dashboard/StaffDashboard";
+
+import { OfficialDashboard } from "./components/dashboard/officialDashboard";
 import { ResearcherDashboard } from "./components/dashboard/ResearcherDashboard";
 import { AdminDashboard } from "./components/dashboard/AdminDashboard";
 import CockpitSidebar from "./components/dashboard/CockpitSidebar";
@@ -65,13 +69,13 @@ import ertaAleLava from "./assets/images/Erta-ale-lava.jpg";
 import dallolSprings from "./assets/images/dallol.jpg";
 import earthObservation from "./assets/images/earthobservation.jpg";
 import volcanicHazardBg from "./assets/images/Volcanic-hazard.jpg";
-import earthquakeHazardBg from "./assets/images/earthquake_hazard_1783416373231.jpg";
+import earthquakeHazardBg from "./assets/images/earthquake-hazard.jpg";
 import {
   Flame,
   Home,
   Activity,
   LayoutDashboard,
-  Map,
+  Map as MapIcon,
   ShieldAlert,
   FileText,
   Info,
@@ -663,7 +667,7 @@ function MetricTrendChart({
 
 export default function App() {
   // tab selector with URL path synchronization
-  const [activeTabRaw, setActiveTabRaw] = useState<"home" | "dashboard" | "staff-dashboard" | "researcher-dashboard" | "admin-dashboard" | "map" | "analytics" | "insar" | "report" | "gallery" | "about" | "focus" | "contact" | "mission" | "sectors" | "announcements">(() => {
+  const [activeTabRaw, setActiveTabRaw] = useState<"home" | "dashboard" | "staff-dashboard" | "official-dashboard" | "researcher-dashboard" | "admin-dashboard" | "map" | "analytics" | "insar" | "report" | "gallery" | "about" | "focus" | "contact" | "mission" | "sectors" | "announcements">(() => {
     try {
       const path = window.location.pathname;
       if (path && path !== "/" && path !== "/index.html") {
@@ -806,7 +810,20 @@ export default function App() {
   const [earthquakes, setEarthquakes] = useState<Earthquake[]>(() => {
     try {
       const stored = localStorage.getItem("essgi_earthquakes");
-      return stored ? JSON.parse(stored) : FALLBACK_EARTHQUAKES;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.filter((e: any) =>
+            e && e.id &&
+            !String(e.id).startsWith("us_test_") &&
+            !String(e.id).startsWith("us_e2e_") &&
+            !String(e.id).startsWith("eq_2025_") &&
+            !String(e.location || "").includes("Afar Triple Junction")
+          );
+          if (sanitized.length > 0) return sanitized;
+        }
+      }
+      return FALLBACK_EARTHQUAKES;
     } catch {
       return FALLBACK_EARTHQUAKES;
     }
@@ -836,9 +853,30 @@ export default function App() {
   useEffect(() => {
     if (liveUSGSEarthquakes && liveUSGSEarthquakes.length > 0) {
       setEarthquakes((prev) => {
-        const liveIds = new Set(liveUSGSEarthquakes.map((e) => e.id));
-        const filteredPrev = prev.filter((e) => !liveIds.has(e.id));
-        const combined = [...liveUSGSEarthquakes, ...filteredPrev];
+        const eqMap = new Map<string, Earthquake>();
+        prev.forEach((e) => {
+          if (
+            e && e.id &&
+            !String(e.id).startsWith("us_test_") &&
+            !String(e.id).startsWith("us_e2e_") &&
+            !String(e.id).startsWith("eq_2025_") &&
+            !String(e.location || "").includes("Afar Triple Junction")
+          ) {
+            eqMap.set(e.id, e);
+          }
+        });
+        liveUSGSEarthquakes.forEach((e) => {
+          if (
+            e && e.id &&
+            !String(e.id).startsWith("us_test_") &&
+            !String(e.id).startsWith("us_e2e_") &&
+            !String(e.id).startsWith("eq_2025_") &&
+            !String(e.location || "").includes("Afar Triple Junction")
+          ) {
+            eqMap.set(e.id, e);
+          }
+        });
+        const combined = Array.from(eqMap.values());
         combined.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
         return combined;
       });
@@ -856,14 +894,53 @@ export default function App() {
     const unsubEarthquakes = subscribeEarthquakes((data) => {
       if (data && data.length > 0) {
         setEarthquakes((prev) => {
-          const fetchedIds = new Set(data.map((e) => e.id));
-          const unmergedLive = (liveUSGSEarthquakes || []).filter((e) => !fetchedIds.has(e.id));
-          const combined = [...unmergedLive, ...data];
+          const eqMap = new Map<string, Earthquake>();
+          prev.forEach((e) => {
+            if (
+              e && e.id &&
+              !String(e.id).startsWith("us_test_") &&
+              !String(e.id).startsWith("us_e2e_") &&
+              !String(e.id).startsWith("eq_2025_") &&
+              !String(e.location || "").includes("Afar Triple Junction")
+            ) {
+              eqMap.set(e.id, e);
+            }
+          });
+          (liveUSGSEarthquakes || []).forEach((e) => {
+            if (
+              e && e.id &&
+              !String(e.id).startsWith("us_test_") &&
+              !String(e.id).startsWith("us_e2e_") &&
+              !String(e.id).startsWith("eq_2025_") &&
+              !String(e.location || "").includes("Afar Triple Junction")
+            ) {
+              eqMap.set(e.id, e);
+            }
+          });
+          data.forEach((e) => {
+            if (
+              e && e.id &&
+              !String(e.id).startsWith("us_test_") &&
+              !String(e.id).startsWith("us_e2e_") &&
+              !String(e.id).startsWith("eq_2025_") &&
+              !String(e.location || "").includes("Afar Triple Junction")
+            ) {
+              eqMap.set(e.id, e);
+            }
+          });
+          const combined = Array.from(eqMap.values());
           combined.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
           return combined;
         });
         try {
-          localStorage.setItem("essgi_earthquakes", JSON.stringify(data));
+          const cleanData = data.filter((e) =>
+            e && e.id &&
+            !String(e.id).startsWith("us_test_") &&
+            !String(e.id).startsWith("us_e2e_") &&
+            !String(e.id).startsWith("eq_2025_") &&
+            !String(e.location || "").includes("Afar Triple Junction")
+          );
+          localStorage.setItem("essgi_earthquakes", JSON.stringify(cleanData));
         } catch {
           // localStorage fallback
         }
@@ -924,6 +1001,19 @@ export default function App() {
   // Pagination for Earthquakes to prevent excessive scrolling
   const [eqPage, setEqPage] = useState<number>(1);
   const eqPerPage = 12;
+
+  // Earthquake catalog filters confirmation dialog state
+  const [isResetEqFiltersModalOpen, setIsResetEqFiltersModalOpen] = useState(false);
+
+  const handleResetEqFilters = () => {
+    setEqSearch("");
+    setEqMinMag(2.0);
+    setEqMaxDepth(100);
+    setEqDatePreset("all");
+    setEqStartDate("");
+    setEqEndDate("");
+    setEqPage(1);
+  };
 
   // Real-time synchronization interval countdown inside ESSGI (seconds remaining)
   const [secondsToSync, setSecondsToSync] = useState(30);
@@ -1124,6 +1214,15 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
 
+  // Helper to get the canonical dashboard tab for any user role
+  const getDashboardForUserRole = (role: string): "admin-dashboard" | "official-dashboard" | "researcher-dashboard" | "staff-dashboard" | "dashboard" => {
+    if (role === "admin" || role === "superadmin") return "admin-dashboard";
+    if (role === "official") return "official-dashboard";
+    if (role === "researcher" || role === "scientist") return "researcher-dashboard";
+    if (role === "staff") return "staff-dashboard";
+    return "dashboard";
+  };
+
   // Authentication Handlers
   const handleSignIn = async (overrideEmail?: string, overridePass?: string) => {
     setAuthError(null);
@@ -1170,16 +1269,8 @@ export default function App() {
           setAuthPassword("");
           setAuthSuccessMsg(null);
 
-          if (data.user.role === "superadmin" || data.user.role === "admin") {
-            setViewMode("dashboard");
-            setActiveTab("admin-dashboard");
-          } else if (data.user.role === "researcher" || data.user.role === "scientist") {
-            setViewMode("dashboard");
-            setActiveTab("researcher-dashboard");
-          } else {
-            setViewMode("dashboard");
-            setActiveTab("staff-dashboard");
-          }
+          setViewMode("dashboard");
+          setActiveTab(getDashboardForUserRole(data.user.role));
         }, 800);
       }
     } catch (err) {
@@ -1237,7 +1328,7 @@ export default function App() {
           setAuthPassword("");
           setAuthSuccessMsg(null);
           setViewMode("dashboard");
-          setActiveTab("staff-dashboard");
+          setActiveTab("official-dashboard");
         }, 800);
       } else {
         // Fallback for any other custom login
@@ -1259,13 +1350,7 @@ export default function App() {
           setAuthPassword("");
           setAuthSuccessMsg(null);
           setViewMode("dashboard");
-          if (assignedRole === "admin") {
-            setActiveTab("admin-dashboard");
-          } else if (assignedRole === "researcher") {
-            setActiveTab("researcher-dashboard");
-          } else {
-            setActiveTab("staff-dashboard");
-          }
+          setActiveTab(getDashboardForUserRole(assignedRole));
         }, 800);
       }
     }
@@ -1322,13 +1407,7 @@ export default function App() {
           setAuthConfirmPassword("");
           setAuthSuccessMsg(null);
           setViewMode("dashboard");
-          if ((authRole as string) === "admin" || (authRole as string) === "superadmin") {
-            setActiveTab("admin-dashboard");
-          } else if ((authRole as string) === "researcher") {
-            setActiveTab("researcher-dashboard");
-          } else {
-            setActiveTab("staff-dashboard");
-          }
+          setActiveTab(getDashboardForUserRole(authRole));
         }, 1200);
       }
     } catch (err) {
@@ -1351,13 +1430,7 @@ export default function App() {
         setAuthConfirmPassword("");
         setAuthSuccessMsg(null);
         setViewMode("dashboard");
-        if ((authRole as string) === "admin" || (authRole as string) === "superadmin") {
-          setActiveTab("admin-dashboard");
-        } else if ((authRole as string) === "researcher") {
-          setActiveTab("researcher-dashboard");
-        } else {
-          setActiveTab("staff-dashboard");
-        }
+        setActiveTab(getDashboardForUserRole(authRole));
       }, 1200);
     }
   };
@@ -1565,9 +1638,14 @@ export default function App() {
       const contentType = eqRes.headers.get("content-type");
       if (eqRes.ok && contentType && contentType.includes("application/json")) {
         const eqData = await eqRes.json();
-        if (eqData.success) {
-          setEarthquakes(eqData.data);
-          localStorage.setItem("essgi_earthquakes", JSON.stringify(eqData.data));
+        if (eqData.success && Array.isArray(eqData.data)) {
+          const eqMap = new Map<string, Earthquake>();
+          eqData.data.forEach((e: Earthquake) => {
+            if (e && e.id) eqMap.set(e.id, e);
+          });
+          const uniqueEqs = Array.from(eqMap.values());
+          setEarthquakes(uniqueEqs);
+          localStorage.setItem("essgi_earthquakes", JSON.stringify(uniqueEqs));
         }
       }
     } catch {
@@ -1603,8 +1681,9 @@ export default function App() {
 
     // RED and ORANGE Volcano alerts
     volcanoes
-      .filter((v) => v.severity === "Red" || v.severity === "Orange")
+      .filter((v) => v && (v.severity === "Red" || v.severity === "Orange"))
       .forEach((v) => {
+        if (!v || !v.id) return;
         activeAlertsLists.push({
           id: `alert_vol_${v.id}`,
           title: `CRITICAL ALERT: Magmatic Turmoil at ${v.name}`,
@@ -1621,9 +1700,10 @@ export default function App() {
     const maxDep = alertThresholdConfig?.maxDepth ?? 35;
 
     earthquakes
-      .filter((e) => e.magnitude >= minMag && e.depth <= maxDep)
+      .filter((e) => e && e.magnitude >= minMag && e.depth <= maxDep)
       .slice(0, 6) // keep top matching events
       .forEach((e) => {
+        if (!e || !e.id) return;
         const isCritical = e.magnitude >= 5.0 || e.severity === "Red";
         activeAlertsLists.push({
           id: `alert_eq_${e.id}`,
@@ -1636,7 +1716,7 @@ export default function App() {
         });
       });
 
-    setAlerts(activeAlertsLists.filter((a) => !dismissedAlertIds.includes(a.id)));
+    setAlerts(activeAlertsLists.filter((a) => a?.id && !dismissedAlertIds.includes(a.id)));
   }, [volcanoes, earthquakes, dismissedAlertIds, alertThresholdConfig]);
 
   // Real-time Audio alert detection monitor for Red & Orange events
@@ -1646,7 +1726,7 @@ export default function App() {
     const currentRedOrOrangeEvents: { id: string; name: string; type: "volcano" | "earthquake"; severity: "Red" | "Orange"; location: string }[] = [];
 
     volcanoes.forEach((v) => {
-      if (v.severity === "Red" || v.severity === "Orange") {
+      if (v && v.id && (v.severity === "Red" || v.severity === "Orange")) {
         currentRedOrOrangeEvents.push({
           id: v.id,
           name: v.name,
@@ -1658,7 +1738,7 @@ export default function App() {
     });
 
     earthquakes.forEach((eq) => {
-      if (eq.severity === "Red" || eq.severity === "Orange") {
+      if (eq && eq.id && (eq.severity === "Red" || eq.severity === "Orange")) {
         currentRedOrOrangeEvents.push({
           id: eq.id,
           name: `M ${eq.magnitude.toFixed(1)} Temblor`,
@@ -1669,7 +1749,7 @@ export default function App() {
       }
     });
 
-    const currentRedOrOrangeIds = new Set(currentRedOrOrangeEvents.map(e => e.id));
+    const currentRedOrOrangeIds = new Set(currentRedOrOrangeEvents.map(e => e?.id).filter(Boolean) as string[]);
 
     const isStartupPhase = Date.now() - systemMountTimeRef.current < 15000;
 
@@ -1683,7 +1763,7 @@ export default function App() {
     }
 
     // Identify new high-severity events that were not previously in knownEventIdsRef
-    const newEvents = currentRedOrOrangeEvents.filter(e => !knownEventIdsRef.current.has(e.id));
+    const newEvents = currentRedOrOrangeEvents.filter(e => e?.id && !knownEventIdsRef.current.has(e.id));
 
     // Update known IDs with all currently active ones
     knownEventIdsRef.current = currentRedOrOrangeIds;
@@ -1833,11 +1913,13 @@ export default function App() {
         <Navbar
           activePage={activeTab === "home" ? "home" : "dashboard"}
           setActivePage={(page) => {
+            setCometPortalItem(null);
             if (page === "home") setActiveTab("home");
-            else setActiveTab("dashboard");
+            else setActiveTab(getDashboardForUserRole(currentUser.role));
           }}
           activeTab={activeTab === "analytics" ? "dashboard" : activeTab}
           setActiveTab={(tab) => {
+            setCometPortalItem(null);
             if (tab === "analytics") {
               setActiveTab("dashboard");
               setDashboardSubTab("analytics");
@@ -1846,10 +1928,12 @@ export default function App() {
             }
           }}
           onSelectDashboardSubTab={(subTab) => {
+            setCometPortalItem(null);
             setActiveTab("dashboard");
             setDashboardSubTab(subTab as any);
           }}
           onSelectAnalyticsSubTab={(subTab) => {
+            setCometPortalItem(null);
             setActiveTab("dashboard");
             if (subTab === "charts") setDashboardSubTab("analytics");
             else if (subTab === "furi") setDashboardSubTab("gnss");
@@ -1873,6 +1957,8 @@ export default function App() {
           onSelectAnnouncement={(ann) => setSelectedAnnouncement(ann)}
         />
       </div>
+      
+     
 
       {/* 2. LIVE SEISMIC SCROLLING TICKER */}
       <div className="bg-[#030914] py-2 px-4 md:px-6 overflow-hidden relative font-mono text-[11.5px] shrink-0 z-20 border-b border-[#00D4FF]/20 text-slate-100 shadow-inner">
@@ -1884,9 +1970,9 @@ export default function App() {
           <div className="flex-grow overflow-hidden w-full relative">
             <div className="flex gap-12 whitespace-nowrap animate-[marquee_45s_linear_infinite] hover:[animation-play-state:paused] text-slate-200 font-semibold">
               {alerts.length ? (
-                alerts.map((al) => (
+                alerts.map((al, idx) => (
                   <span
-                    key={al.id}
+                    key={`${al.id}-${idx}`}
                     onClick={() => {
                       setActiveTab("map");
                       const item_id = al.id.replace("alert_vol_", "").replace("alert_eq_", "");
@@ -1947,7 +2033,19 @@ export default function App() {
                     setAuthModalTab("signin");
                     setIsAuthModalOpen(true);
                   }}
-                  onLaunchDashboard={() => setActiveTab("dashboard")}
+                  onLaunchDashboard={() => {
+                    if (currentUser.role === "admin" || currentUser.role === "superadmin") {
+                      setActiveTab("admin-dashboard");
+                    } else if (currentUser.role === "official") {
+                      setActiveTab("official-dashboard");
+                    } else if (currentUser.role === "researcher" || currentUser.role === "scientist") {
+                      setActiveTab("researcher-dashboard");
+                    } else if (currentUser.role === "staff") {
+                      setActiveTab("staff-dashboard");
+                    } else {
+                      setActiveTab("dashboard");
+                    }
+                  }}
                   onNavigateToTab={(tab) => {
                     if (tab === "volcanoes" || tab === "earthquakes") {
                       setActiveTab("analytics");
@@ -2642,9 +2740,9 @@ export default function App() {
                         if (dashboardAdvisoryFilter === "seismic") return al.type === "seismic";
                         return true;
                       })
-                      .map((al) => (
+                      .map((al, idx) => (
                         <AdvisoryCard
-                          key={al.id}
+                          key={`${al.id}-${idx}`}
                           alert={al}
                           currentUserRole={currentUser.role}
                           onDismiss={handleDismissAlert}
@@ -2750,7 +2848,7 @@ export default function App() {
                           }}
                           className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-[#0E4A72] dark:text-sky-400 font-semibold px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 cursor-pointer text-[10px]"
                         >
-                          <Map className="w-3 h-3" />
+                          <MapIcon className="w-3 h-3" />
                           <span>View on GIS Map</span>
                         </button>
                       </div>
@@ -3177,16 +3275,11 @@ export default function App() {
                       {/* Reset All Filters Button */}
                       {(eqSearch || eqMinMag > 2.0 || eqMaxDepth < 100 || eqDatePreset !== "all" || eqStartDate || eqEndDate) && (
                         <button
+                          id="reset-eq-filters-trigger-btn"
                           type="button"
-                          onClick={() => {
-                            setEqSearch("");
-                            setEqMinMag(2.0);
-                            setEqMaxDepth(100);
-                            setEqDatePreset("all");
-                            setEqStartDate("");
-                            setEqEndDate("");
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
+                          onClick={() => setIsResetEqFiltersModalOpen(true)}
+                          className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 hover:border-amber-500/40"
+                          title="Reset active seismic catalog filters"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
                           <span>Reset All Filters</span>
@@ -3236,7 +3329,7 @@ export default function App() {
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 dark:divide-white/5 font-sans">
-                                {paginatedEarthquakes.map((eq) => {
+                                {paginatedEarthquakes.map((eq, idx) => {
                                   let magColor = "text-emerald-700 font-bold dark:text-emerald-400";
                                   let sevColor = "bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/25 dark:border-emerald-800/40";
                                   if (eq.magnitude >= 5.5) {
@@ -3259,7 +3352,7 @@ export default function App() {
                                   });
 
                                   return (
-                                    <tr key={eq.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                    <tr key={`${eq.id || 'eq'}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                       <td className="py-3 px-3 font-mono">
                                         <span className={`px-2 py-0.5 rounded-lg font-bold ${sevColor} ${magColor}`}>
                                           M {eq.magnitude.toFixed(1)}
@@ -3294,7 +3387,7 @@ export default function App() {
                                           className="bg-white dark:bg-slate-900 hover:bg-[#0E4A72] hover:text-white border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 p-2 rounded-xl transition-all cursor-pointer shadow-xs"
                                           title="Focus Center on GIS Map"
                                         >
-                                          <Map className="w-3.5 h-3.5" />
+                                          <MapIcon className="w-3.5 h-3.5" />
                                         </button>
                                       </td>
                                     </tr>
@@ -3335,8 +3428,19 @@ export default function App() {
                           </div>
                         </div>
                       ) : (
-                        <div className="py-16 text-center text-slate-400 text-xs italic">
-                          No seismic incidents match the current filters. Adjust your search or magnitude sliders.
+                        <div className="py-16 text-center text-slate-400 text-xs italic flex flex-col items-center justify-center gap-3">
+                          <p>No seismic incidents match the current filters. Adjust your search or magnitude sliders.</p>
+                          {(eqSearch || eqMinMag > 2.0 || eqMaxDepth < 100 || eqDatePreset !== "all" || eqStartDate || eqEndDate) && (
+                            <button
+                              id="reset-empty-eq-filters-trigger-btn"
+                              type="button"
+                              onClick={() => setIsResetEqFiltersModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold font-sans transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              <span>Reset All Filters</span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -3610,7 +3714,20 @@ export default function App() {
             </div>
           )}
 
-          {/* ==================== G2. RESEARCHER DASHBOARD ==================== */}
+          {/* ==================== G2. OFFICIAL DASHBOARD ==================== */}
+          {activeTab === "official-dashboard" && (
+            <div className="animate-fade-in max-w-7xl mx-auto px-4 py-4">
+              <OfficialDashboard
+                currentUser={currentUser}
+                volcanoes={volcanoes}
+                earthquakes={earthquakes}
+                onNavigateToTab={(tab) => setActiveTab(tab as any)}
+                onSignOut={handleSignOut}
+              />
+            </div>
+          )}
+
+          {/* ==================== G3. RESEARCHER DASHBOARD ==================== */}
           {activeTab === "researcher-dashboard" && (
             <div className="animate-fade-in max-w-7xl mx-auto px-4 py-4">
               <ResearcherDashboard
@@ -3660,13 +3777,7 @@ export default function App() {
           setCurrentUser(user as any);
           setIsAuthModalOpen(false);
           setViewMode("dashboard");
-          if (user.role === "superadmin" || user.role === "admin") {
-            setActiveTab("admin-dashboard");
-          } else if (user.role === "researcher" || user.role === "scientist") {
-            setActiveTab("researcher-dashboard");
-          } else {
-            setActiveTab("staff-dashboard");
-          }
+          setActiveTab(getDashboardForUserRole(user.role));
         }}
       />
 
@@ -3939,7 +4050,7 @@ export default function App() {
       {/* GLOBAL EARTHQUAKE DETAIL PANEL */}
       <AnimatePresence>
         {selectedItem?.type === "earthquake" && activeTab !== "map" && (() => {
-          const eq = earthquakes.find((e) => e.id === selectedItem.id);
+          const eq = earthquakes.find((e) => e?.id === selectedItem?.id);
           if (!eq) return null;
           return (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 font-sans">
@@ -4039,7 +4150,7 @@ export default function App() {
         isOpen={Boolean(selectedAnnouncement)}
         onClose={() => setSelectedAnnouncement(null)}
       />
-  
-    </div>
-  );
+</div>
+);
 }
+

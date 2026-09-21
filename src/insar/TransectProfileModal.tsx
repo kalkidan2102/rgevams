@@ -32,6 +32,11 @@ export const TransectProfileModal: React.FC<TransectProfileModalProps> = ({
     let isMounted = true;
     setLoading(true);
 
+    if (!volcano || !volcano.bounds) {
+      setLoading(false);
+      return;
+    }
+
     const b = volcano.bounds;
     const midLat = (b.north + b.south) / 2;
     const midLon = (b.east + b.west) / 2;
@@ -162,20 +167,7 @@ export const TransectProfileModal: React.FC<TransectProfileModalProps> = ({
                         }}
                       />
                       <YAxis stroke="#64748b" fontSize={10} fontFamily="monospace" />
-                      <Tooltip
-                        content={({ active, payload }: { active?: boolean; payload?: Array<{ payload: TransectPoint }> }) => {
-                          if (!active || !payload || !payload.length) return null;
-                          const p = payload[0].payload as TransectPoint;
-                          return (
-                            <div className="bg-slate-900 border border-slate-700 p-2 rounded text-xs font-mono space-y-0.5">
-                              <div className="text-cyan-400 font-bold">Distance: {p.distanceKm} km</div>
-                              <div className="text-slate-300">Lat: {p.latitude}°, Lon: {p.longitude}°</div>
-                              <div className="text-emerald-400 font-bold">Disp: {p.displacement} mm</div>
-                              <div className="text-amber-400 font-bold">Velocity: {p.velocity} mm/yr</div>
-                            </div>
-                          );
-                        }}
-                      />
+                      
                       <Line
                         type="monotone"
                         dataKey="displacement"

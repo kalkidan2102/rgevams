@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { X, Search, Building2, Megaphone, Newspaper, Activity, AlertOctagon, ArrowRight } from "lucide-react";
-import { SECTORS_DATA, SectorData } from "../../data/sectors";
+import { SECTORS_DATA, SectorData } from "../../data/Sectors";
 import { ANNOUNCEMENTS_DATA, AnnouncementItem } from "../../data/announcements";
 import { LATEST_NEWS } from "../../data/news";
 

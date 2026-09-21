@@ -79,6 +79,8 @@ export const InSARInfoPanel: React.FC<InSARInfoPanelProps> = ({
     "Stable Reference"
   ];
 
+  if (!volcano) return null;
+
   return (
     <div className="w-full bg-[#0B0F19] text-slate-100 border border-slate-800 rounded-xl p-4 shadow-xl font-sans space-y-3.5">
       

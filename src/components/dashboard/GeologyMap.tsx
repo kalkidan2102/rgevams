@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
+import "../../lib/LeafletFix.ts";
 import { Volcano, Earthquake, SeverityLevel, SelectedItem, GnssStation } from "../../types";
 import { ETHIOPIA_ACTIVE_ZONES } from "../../data/volcanoes";
 import { ETHIOPIA_GNSS_STATIONS } from "../../data/earthquakes";
 import { EarthquakeDetailPanel } from "./EarthquakeDetailPanel";
 import GnssChartPanel from "./GnssChartPanel";
-import { InteractiveLicsbasViewer } from "./InteractiveLicsbasViewer";
 import { AnimatePresence } from "motion/react";
 import {
   Layers,
@@ -549,11 +549,13 @@ export default function GeologyMap({
   onTriggerSmartAlert,
 }: GeologyMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const outerContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const riftLineRef = useRef<any>(null);
   const tileLayerRef = useRef<any>(null);
   const pulseMarkerRef = useRef<any>(null);
+  const fitAllBoundsRef = useRef<() => void>(() => {});
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapStyle, setMapStyle] = useState<MapLayerStyle>("googleEarthHybrid");
@@ -599,10 +601,6 @@ export default function GeologyMap({
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [timelineProgress, setTimelineProgress] = useState(100);
 
-  // LiCSBAS InSAR Modal State
-  const [showLicsbasModal, setShowLicsbasModal] = useState<boolean>(false);
-  const [licsbasStationName, setLicsbasStationName] = useState<string>("Erta Ale Caldera");
-
   useEffect(() => {
     let intervalId: any = null;
     if (isTimelinePlaying) {
@@ -628,28 +626,85 @@ export default function GeologyMap({
   const toggleFullScreen = () => {
     setIsFullScreen((prev) => {
       const next = !prev;
-      setTimeout(() => {
-        if (mapRef.current) {
-          mapRef.current.invalidateSize();
+      if (next) {
+        try {
+          if (outerContainerRef.current?.requestFullscreen && !document.fullscreenElement) {
+            outerContainerRef.current.requestFullscreen().catch(() => {});
+          }
+        } catch {
+          // Fallback gracefully to CSS fixed fullscreen overlay in iframes/sandboxes
         }
-      }, 200);
+      } else {
+        try {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Staged invalidation to catch layout reflow immediately and post-transition
+      [30, 100, 250, 420].forEach((delay) => {
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.invalidateSize({ animate: false });
+            if (next && delay === 250) {
+              fitAllBoundsRef.current?.();
+            }
+          }
+        }, delay);
+      });
       return next;
     });
   };
 
   useEffect(() => {
+    const handleNativeFullscreenChange = () => {
+      const isNative = !!document.fullscreenElement;
+      if (!isNative && isFullScreen) {
+        setIsFullScreen(false);
+        [30, 100, 250, 420].forEach((delay) => {
+          setTimeout(() => {
+            if (mapRef.current) {
+              mapRef.current.invalidateSize({ animate: false });
+            }
+          }, delay);
+        });
+      }
+    };
+    document.addEventListener("fullscreenchange", handleNativeFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleNativeFullscreenChange);
+  }, [isFullScreen]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isFullScreen) {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
         setIsFullScreen(false);
-        setTimeout(() => {
-          if (mapRef.current) {
-            mapRef.current.invalidateSize();
-          }
-        }, 200);
+        [30, 100, 250, 420].forEach((delay) => {
+          setTimeout(() => {
+            if (mapRef.current) {
+              mapRef.current.invalidateSize({ animate: false });
+            }
+          }, delay);
+        });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullScreen]);
+
+  useEffect(() => {
+    if (isFullScreen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
   }, [isFullScreen]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -746,7 +801,15 @@ export default function GeologyMap({
     const initialZoom = 6;
 
     if (mapRef.current) {
-      mapRef.current.remove();
+      try {
+        mapRef.current.stop();
+        mapRef.current.remove();
+      } catch {}
+      mapRef.current = null;
+    }
+
+    if ((containerRef.current as any)._leaflet_id) {
+      delete (containerRef.current as any)._leaflet_id;
     }
 
     try {
@@ -839,7 +902,10 @@ export default function GeologyMap({
 
     return () => {
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.stop();
+          mapRef.current.remove();
+        } catch {}
         mapRef.current = null;
       }
     };
@@ -885,6 +951,31 @@ export default function GeologyMap({
     };
   }, [mapLoaded]);
 
+  // Automated, debounced ResizeObserver on the Leaflet container
+  // Guarantees pixel-perfect dimension invalidation when entering/exiting fullscreen,
+  // expanding/collapsing the sidebar, or resizing the viewport window.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !mapLoaded) return;
+
+    let resizeTimer: any = null;
+    const observer = new ResizeObserver(() => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize({ animate: false });
+        }
+      }, 50);
+    });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+      if (resizeTimer) clearTimeout(resizeTimer);
+    };
+  }, [mapLoaded]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -892,14 +983,6 @@ export default function GeologyMap({
     const handlePopupClick = (e: any) => {
       const target = e.target as HTMLElement;
       if (!target) return;
-
-      const licsBtn = target.closest(".licsbas-portal-trigger-btn");
-      if (licsBtn) {
-        const name = licsBtn.getAttribute("data-name") || licsBtn.getAttribute("data-id") || "Erta Ale Caldera";
-        setLicsbasStationName(name);
-        setShowLicsbasModal(true);
-        return;
-      }
 
       const btn = target.closest(".comet-portal-trigger-btn");
       if (btn && onOpenCometPortal) {
@@ -917,11 +1000,11 @@ export default function GeologyMap({
         if (type && id) {
           let foundItem: any = null;
           if (type === "volcano") {
-            foundItem = volcanoes.find(v => v.id === id);
+            foundItem = volcanoes.find(v => v?.id === id);
           } else if (type === "earthquake") {
-            foundItem = earthquakes.find(eq => eq.id === id);
+            foundItem = earthquakes.find(eq => eq?.id === id);
           } else if (type === "gnss") {
-            foundItem = ETHIOPIA_GNSS_STATIONS.find(st => st.id === id);
+            foundItem = ETHIOPIA_GNSS_STATIONS.find(st => st?.id === id);
           }
           if (foundItem) {
             setInspectNode({ type, item: foundItem });
@@ -1101,10 +1184,6 @@ export default function GeologyMap({
 
             <button class="comet-portal-trigger-btn px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[10.5px] cursor-pointer flex items-center justify-center gap-1.5 w-full shadow-xs border-0" data-type="volcano" data-id="${v.id}">
               Explore COMET Geostation Portal ↗
-            </button>
-
-            <button class="licsbas-portal-trigger-btn px-2.5 py-1.5 bg-gradient-to-r from-purple-700 via-indigo-700 to-cyan-700 hover:from-purple-600 hover:to-cyan-600 text-white font-bold rounded-lg text-[10.5px] cursor-pointer flex items-center justify-center gap-1.5 w-full shadow-xs border-0 mt-1" data-name="${v.name}" data-id="${v.id}">
-              📡 Fetch LiCSBAS InSAR Map & Time-Series ↗
             </button>
             
             <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-1">
@@ -1595,26 +1674,26 @@ export default function GeologyMap({
     let targetCoords: [number, number] | null = null;
     let targetZoom = 8;
 
-    if (selectedItem.type === "volcano") {
-      const v = volcanoes.find((vol) => vol.id === selectedItem.id);
+    if (selectedItem?.type === "volcano") {
+      const v = volcanoes.find((vol) => vol?.id === selectedItem?.id);
       if (v && showVolcanoes) {
         targetCoords = v.coordinates;
         targetZoom = 9.5;
       } else {
-        const zone = ETHIOPIA_ACTIVE_ZONES.find((z) => z.id === selectedItem.id);
+        const zone = ETHIOPIA_ACTIVE_ZONES.find((z) => z?.id === selectedItem?.id);
         if (zone) {
           targetCoords = zone.coordinates;
           targetZoom = 8.5;
         }
       }
-    } else if (selectedItem.type === "earthquake") {
-      const eq = earthquakes.find((e) => e.id === selectedItem.id);
+    } else if (selectedItem?.type === "earthquake") {
+      const eq = earthquakes.find((e) => e?.id === selectedItem?.id);
       if (eq && showEarthquakes) {
         targetCoords = eq.coordinates;
         targetZoom = 9.5;
       }
-    } else if (selectedItem.type === "gnss") {
-      const st = ETHIOPIA_GNSS_STATIONS.find((s) => s.id === selectedItem.id);
+    } else if (selectedItem?.type === "gnss") {
+      const st = ETHIOPIA_GNSS_STATIONS.find((s) => s?.id === selectedItem?.id);
       if (st && showGnss) {
         targetCoords = st.coordinates;
         targetZoom = 10;
@@ -1656,14 +1735,29 @@ export default function GeologyMap({
       animatedEarthquakes.forEach((eq) => validCoords.push(eq.coordinates));
     }
 
-    if (validCoords.length > 0) {
+    if (validCoords.length === 0) {
+      volcanoes.forEach((v) => validCoords.push(v.coordinates));
+      earthquakes.forEach((eq) => validCoords.push(eq.coordinates));
+    }
+
+    if (validCoords.length > 1) {
       const bounds = L.latLngBounds(validCoords);
-      map.fitBounds(bounds, { padding: [40, 40], animate: true, duration: 1 });
+      map.fitBounds(bounds, {
+        paddingTopLeft: [70, 70],
+        paddingBottomRight: isSidebarOpen ? [340, 70] : [70, 70],
+        maxZoom: 9,
+        animate: true,
+        duration: 0.8,
+      });
+    } else if (validCoords.length === 1) {
+      map.setView(validCoords[0], 8, { animate: true, duration: 0.8 });
     } else {
-      map.setView([9.145, 40.4896], 6, { animate: true, duration: 1 });
+      map.setView([9.145, 40.4896], isFullScreen ? 6.5 : 6, { animate: true, duration: 0.8 });
     }
     onSelectItem(null);
   };
+
+  fitAllBoundsRef.current = fitAllBounds;
 
   const handleApplyPreset = (coords: [number, number], zoom: number) => {
     if (!mapLoaded || !mapRef.current) return;
@@ -1678,11 +1772,12 @@ export default function GeologyMap({
 
   return (
     <div
+      ref={outerContainerRef}
       className={`relative w-full transition-all duration-300 font-sans ${
         isFullScreen
-          ? "fixed inset-0 z-[99999] h-screen w-screen rounded-none bg-slate-950 p-2 sm:p-4"
-          : "h-[640px] rounded-lg border border-slate-300 dark:border-white/5 bg-slate-50 dark:bg-slate-900/10 shadow-sm"
-      } overflow-hidden flex flex-col lg:flex-row`}
+          ? "fixed inset-0 z-[99999] w-full h-full p-0 m-0 rounded-none bg-slate-950"
+          : "h-[650px] rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-900/10 shadow-sm"
+      } overflow-hidden flex flex-col`}
     >
       {/* FULLSCREEN Floating Exit Banner if active */}
       {isFullScreen && (
@@ -1691,6 +1786,14 @@ export default function GeologyMap({
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
             FULL SCREEN GIS VIEWPORT MODE
           </span>
+          <button
+            onClick={fitAllBounds}
+            className="bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold px-2.5 py-1 rounded-full text-[11px] transition-all cursor-pointer flex items-center gap-1 border border-cyan-500/30 shadow-md"
+            title="Fit Map Bounds to all active seismic and volcanic stations"
+          >
+            <Compass className="w-3.5 h-3.5 text-cyan-400" />
+            Fit Bounds
+          </button>
           <span className="text-slate-400 text-[10px]">Press Esc or</span>
           <button
             onClick={toggleFullScreen}
@@ -1702,8 +1805,10 @@ export default function GeologyMap({
         </div>
       )}
       
-      {/* 1. LEFT CONTAINER: LEAFLET CANVAS + MAIN FLOATING OVERLAYS */}
-      <div className="relative flex-grow h-full min-h-[350px]">
+      {/* 1. TOP / MAIN CONTENT AREA: MAP VIEWPORT + SIDEBAR */}
+      <div className="flex-1 min-h-0 w-full flex flex-col lg:flex-row overflow-hidden relative">
+        {/* LEFT CONTAINER: LEAFLET CANVAS + MAIN FLOATING OVERLAYS */}
+        <div className="flex-1 min-w-0 h-full relative overflow-hidden">
         <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2 max-w-[310px] select-none">
           {!controlsExpanded ? (
             <button
@@ -2035,7 +2140,6 @@ export default function GeologyMap({
                 <span>Fit Map Bounds (All Nodes)</span>
               </button>
 
-              
             </div>
 
             {/* Layer toggles */}
@@ -2149,7 +2253,7 @@ export default function GeologyMap({
         {/* EARTHQUAKE DETAIL PANEL */}
         <AnimatePresence>
           {selectedItem?.type === "earthquake" && (() => {
-            const eq = earthquakes.find((e) => e.id === selectedItem.id);
+            const eq = earthquakes.find((e) => e?.id === selectedItem?.id);
             if (!eq) return null;
             return (
               <EarthquakeDetailPanel
@@ -2236,8 +2340,8 @@ export default function GeologyMap({
             <div className="flex-grow overflow-y-auto divide-y divide-slate-150 dark:divide-white/5 bg-white dark:bg-slate-950/20">
               {sidebarTab === "volcano" ? (
                 filteredVolcanoes.length ? (
-                  filteredVolcanoes.map((item) => {
-                    const isSelected = selectedItem?.type === "volcano" && selectedItem.id === item.id;
+                  filteredVolcanoes.map((item, idx) => {
+                    const isSelected = selectedItem?.type === "volcano" && selectedItem?.id === item?.id;
                     
                     const severityColors: Record<SeverityLevel, string> = {
                       Red: "bg-red-50 text-red-700 dark:bg-rose-500/10 dark:text-rose-455 border-red-200 dark:border-rose-500/20",
@@ -2249,7 +2353,7 @@ export default function GeologyMap({
 
                     return (
                       <div
-                        key={item.id}
+                        key={`${item.id}-${idx}`}
                         onClick={() => {
                           onSelectItem({ type: "volcano", id: item.id });
                         }}
@@ -2285,8 +2389,8 @@ export default function GeologyMap({
                 )
               ) : (
                 filteredEarthquakes.length ? (
-                  filteredEarthquakes.map((item) => {
-                    const isSelected = selectedItem?.type === "earthquake" && selectedItem.id === item.id;
+                  filteredEarthquakes.map((item, idx) => {
+                    const isSelected = selectedItem?.type === "earthquake" && selectedItem?.id === item?.id;
                     
                     const severityColors: Record<SeverityLevel, string> = {
                       Red: "bg-red-50 text-red-700 dark:bg-rose-500/10 dark:text-rose-455 border-red-200 dark:border-rose-500/20",
@@ -2298,7 +2402,7 @@ export default function GeologyMap({
 
                     return (
                       <div
-                        key={item.id}
+                        key={`${item.id}-${idx}`}
                         onClick={() => {
                           onSelectItem({ type: "earthquake", id: item.id });
                         }}
@@ -2364,8 +2468,10 @@ export default function GeologyMap({
 
       </div>
 
-      {/* FOOTER COORD REALTIME ROW */}
-      <div className="absolute bottom-0 left-0 right-0 h-8 bg-slate-100 dark:bg-slate-950 text-[10.5px] font-mono text-slate-600 dark:text-slate-400 px-4 flex items-center justify-between z-[1000] border-t border-slate-300 dark:border-white/5">
+      </div>
+
+      {/* FOOTER COORD REALTIME ROW (Proper flex item, never overlapping map or sidebar) */}
+      <div className="h-8 bg-slate-100 dark:bg-slate-950 text-[10.5px] font-mono text-slate-600 dark:text-slate-400 px-4 flex items-center justify-between z-[1002] border-t border-slate-300 dark:border-white/5 shrink-0 select-none">
         <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
           <Compass className="w-3.5 h-3.5 text-rose-500 animate-[spin_10s_linear_infinite]" />
           <span>GEO-STATION CORRIDOR MONITORING</span>
@@ -2523,7 +2629,7 @@ export default function GeologyMap({
         </div>
       )}
 
-    
+
 
     </div>
   );

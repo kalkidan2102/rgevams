@@ -1028,7 +1028,8 @@ class InSARService {
     width: number,
     height: number,
     target: VolcanoTarget,
-    filterMode: InSARFilterMode = "filtered"
+    filterMode: InSARFilterMode = "filtered",
+    orbitDirection: "Ascending" | "Descending" = "Ascending"
   ): {
     disp: number | null;
     velocity: number | null;
@@ -1185,6 +1186,18 @@ class InSARService {
       velVal = (dome / (target.dispMax || 1)) * target.peakVelocity;
     }
 
+    // Orbit look geometry LOS projection:
+    // Ascending looks toward East (Heading ~349°), Descending looks toward West (Heading ~192°)
+    // Horizontal outward expansion pushes east (+dx) on East flank and west (-dx) on West flank
+    const horizExpansion = (dx / 0.32) * 38;
+    if (orbitDirection === "Descending") {
+      dispVal = (dispVal * 0.94) + horizExpansion * 0.42;
+      velVal = (velVal * 0.94) + (horizExpansion * 0.42 / (target.dispMax || 500)) * target.peakVelocity;
+    } else {
+      dispVal = (dispVal * 1.00) - horizExpansion * 0.42;
+      velVal = (velVal * 1.00) - (horizExpansion * 0.42 / (target.dispMax || 500)) * target.peakVelocity;
+    }
+
     if (filterMode === "unfiltered") {
       // Add raw phase speckle noise (unwrapped interferometric residual noise)
       const speckle = Math.sin(x * 0.32 + y * 0.42) * 35 + Math.cos(x * 0.15 - y * 0.28) * 18;
@@ -1215,6 +1228,7 @@ class InSARService {
     const activeTrack = trackFrameId
       ? target.tracks.find((t) => t.frameId === trackFrameId) || target.tracks[0]
       : target.tracks[0];
+    const orbitDirection = activeTrack ? activeTrack.orbitDirection : "Ascending";
 
     const values: (number | null)[] = new Array(width * height);
     const velocityValues: (number | null)[] = new Array(width * height);
@@ -1223,7 +1237,7 @@ class InSARService {
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const res = this.computePixelDisp(x, y, width, height, target, filterMode);
+        const res = this.computePixelDisp(x, y, width, height, target, filterMode, orbitDirection);
         const idx = y * width + x;
         values[idx] = res.disp;
         velocityValues[idx] = res.velocity;
@@ -1267,7 +1281,8 @@ class InSARService {
     volcanoId: string,
     latitude: number,
     longitude: number,
-    filterMode: InSARFilterMode = "filtered"
+    filterMode: InSARFilterMode = "filtered",
+    orbitDirection: "Ascending" | "Descending" = "Ascending"
   ): Promise<{
     disp: number | null;
     velocity: number | null;
@@ -1285,7 +1300,7 @@ class InSARService {
     const x = Math.floor(normX * (width - 1));
     const y = Math.floor(normY * (height - 1));
 
-    return this.computePixelDisp(x, y, width, height, target, filterMode);
+    return this.computePixelDisp(x, y, width, height, target, filterMode, orbitDirection);
   }
 
   /**
@@ -1332,16 +1347,25 @@ class InSARService {
     volcanoId: string,
     latitude: number,
     longitude: number,
-    filterMode: InSARFilterMode = "filtered"
+    filterMode: InSARFilterMode = "filtered",
+    trackFrameId?: string
   ): Promise<InSARPointTimeSeries> {
     const target = this.getVolcanoById(volcanoId);
-    const pixelRes = await this.getPixelValue(volcanoId, latitude, longitude, filterMode);
+    const activeTrack = trackFrameId
+      ? target.tracks.find((t) => t.frameId === trackFrameId) || target.tracks[0]
+      : target.tracks[0];
+    const ascTrack = target.tracks.find((t) => t.orbitDirection === "Ascending") || target.tracks[0];
+    const descTrack = target.tracks.find((t) => t.orbitDirection === "Descending") || target.tracks[1] || target.tracks[0];
+
+    const pixelRes = await this.getPixelValue(volcanoId, latitude, longitude, filterMode, activeTrack?.orbitDirection);
 
     const startYr = 2014.8;
     const endYr = 2026.4;
     const dates: string[] = [];
     const decimalYears: number[] = [];
     const displacementTimeSeries: (number | null)[] = [];
+    const ascendingTimeSeries: (number | null)[] = [];
+    const descendingTimeSeries: (number | null)[] = [];
     const rawDisplacementTimeSeries: (number | null)[] = [];
     const verticalTimeSeries: (number | null)[] = [];
     const eastWestTimeSeries: (number | null)[] = [];
@@ -1357,10 +1381,15 @@ class InSARService {
     const maxRadius = Math.sqrt(Math.pow(b.north - b.south, 2) + Math.pow(b.east - b.west, 2)) * 0.5;
     const spatialWeight = Math.max(0.04, 1 - dist / maxRadius);
 
+    // Radial horizontal outward deformation (dLon > 0 is East flank, dLon < 0 is West flank)
+    const horizExpansion = (dLon / Math.max(0.05, maxRadius * 0.7)) * 36 * spatialWeight;
+
     let dayCount = 0;
     let sumX = 0;
-    let sumY = 0;
-    let sumXY = 0;
+    let sumYAsc = 0, sumXYAsc = 0;
+    let sumYDesc = 0, sumXYDesc = 0;
+    let sumYVert = 0, sumXYVert = 0;
+    let sumYEw = 0, sumXYEw = 0;
     let sumXX = 0;
     let validCount = 0;
     const validYs: number[] = [];
@@ -1399,6 +1428,8 @@ class InSARService {
 
       if (isGap) {
         displacementTimeSeries.push(null);
+        ascendingTimeSeries.push(null);
+        descendingTimeSeries.push(null);
         rawDisplacementTimeSeries.push(null);
         verticalTimeSeries.push(null);
         eastWestTimeSeries.push(null);
@@ -1408,17 +1439,11 @@ class InSARService {
         let baseDisp = 0;
 
         if (target.id === "alutu") {
-          // Alutu signature: 2015-2016 uplift wave (~15cm), 2017-2020 deflation, 2021-2024 resurgence
           const elapsed = yr - startYr;
           const cycle1 = Math.sin(elapsed * 1.6) * 95;
           const trend = elapsed * target.peakVelocity * 0.65;
           baseDisp = cycle1 + trend;
         } else if (target.id === "erta_ale") {
-          // Erta Ale exact COMET Sentinel-1 time series:
-          // 2014.8 to 2017.05: Near 0 baseline with slight fluctuations
-          // 2017.05 to 2017.70: Data Gap (fissure eruption)
-          // 2017.70 to 2024.8: Step up to ~150-180 mm, gradual inflation to ~220 mm
-          // 2025.0 to 2026.4: Massive magmatic surge up to ~590 mm!
           if (yr < 2017.05) {
             const elapsed = yr - startYr;
             baseDisp = Math.sin(elapsed * 4.8) * 8.5 + Math.cos(elapsed * 2.2) * 5.0;
@@ -1430,39 +1455,49 @@ class InSARService {
             baseDisp = 220 + Math.min(372, Math.pow(elapsed / 0.9, 1.7) * 372) + (Math.sin(elapsed * 12) * 3);
           }
         } else if (target.id === "corbetti") {
-          // Corbetti: Extraordinary steady linear uplift (+38.6 mm/yr)
           const elapsed = yr - startYr;
           baseDisp = elapsed * target.peakVelocity + Math.sin(elapsed * 1.5) * 6;
         } else if (target.id === "dallol") {
-          // Dallol: Steady subsidence (-32.4 mm/yr) + seasonal brine dissolve oscillations
           const elapsed = yr - startYr;
           baseDisp = elapsed * target.peakVelocity + Math.cos(elapsed * 3.1) * 18;
         } else if (target.id === "dabbahu") {
-          // Dabbahu: Post-rifting exponential decay relaxation
           const elapsed = yr - startYr;
           baseDisp = (1 - Math.exp(-elapsed / 3.5)) * 280 + elapsed * 6;
         } else {
-          // Standard linear deformation
           const elapsed = yr - startYr;
           baseDisp = elapsed * target.peakVelocity + Math.sin(elapsed * 2.2) * 5;
         }
 
-        const smoothNoise = Math.sin(dayCount * 0.22) * 2.2 + Math.cos(dayCount * 0.15) * 1.8;
+        // Radar phase noise (separate for Ascending vs Descending passes)
+        const smoothNoiseAsc = Math.sin(dayCount * 0.22) * 2.2 + Math.cos(dayCount * 0.15) * 1.8;
+        const smoothNoiseDesc = Math.sin((dayCount + 11) * 0.25) * 2.4 + Math.cos((dayCount + 7) * 0.17) * 1.7;
         const rawNoise = Math.sin(dayCount * 0.45) * 8.5 + Math.cos(dayCount * 0.35) * 7.0;
 
-        const scaledDisp = parseFloat((baseDisp * spatialWeight + smoothNoise).toFixed(1));
-        const rawDisp = parseFloat((baseDisp * spatialWeight + rawNoise).toFixed(1));
+        // Ascending orbit LOS (heading ~349°, looking east):
+        // Eastward motion (+horizExpansion) moves away from look direction -> subtracts from LOS
+        const ascDisp = parseFloat((baseDisp * spatialWeight * 1.00 - horizExpansion * 0.42 + smoothNoiseAsc).toFixed(1));
 
-        // 2.5D decomposition (Incidence angle ~39.2°)
-        const vertDisp = parseFloat((scaledDisp / Math.cos((39.2 * Math.PI) / 180) * 0.88).toFixed(1));
-        const ewDisp = parseFloat((scaledDisp * 0.32).toFixed(1));
+        // Descending orbit LOS (heading ~192°, looking west):
+        // Eastward motion (+horizExpansion) moves toward look direction -> adds to LOS
+        const descDisp = parseFloat((baseDisp * spatialWeight * 0.94 + horizExpansion * 0.42 + smoothNoiseDesc).toFixed(1));
 
-        displacementTimeSeries.push(scaledDisp);
+        // 2.5D Geodetic Inversion: Decomposed Vertical (Up/Down) & East-West Motion
+        const thetaAvgRad = (40.5 * Math.PI) / 180;
+        const vertDisp = parseFloat(((ascDisp + descDisp) / (2 * Math.cos(thetaAvgRad))).toFixed(1));
+        const ewDisp = parseFloat(((descDisp - ascDisp) / (2 * Math.sin(thetaAvgRad))).toFixed(1));
+
+        const isDesc = activeTrack.orbitDirection === "Descending";
+        const currentTrackDisp = isDesc ? descDisp : ascDisp;
+        const rawDisp = parseFloat((currentTrackDisp + rawNoise).toFixed(1));
+
+        displacementTimeSeries.push(currentTrackDisp);
+        ascendingTimeSeries.push(ascDisp);
+        descendingTimeSeries.push(descDisp);
         rawDisplacementTimeSeries.push(rawDisp);
         verticalTimeSeries.push(vertDisp);
         eastWestTimeSeries.push(ewDisp);
 
-        const epochError = parseFloat((1.8 + Math.abs(smoothNoise) * 0.6).toFixed(2));
+        const epochError = parseFloat((1.8 + Math.abs(smoothNoiseAsc) * 0.6).toFixed(2));
         errorBars.push(epochError);
 
         const epochCoh = parseFloat((0.84 + Math.sin(dayCount * 0.12) * 0.08).toFixed(2));
@@ -1471,10 +1506,16 @@ class InSARService {
         // Linear regression accumulation
         const tRel = yr - startYr;
         sumX += tRel;
-        sumY += scaledDisp;
-        sumXY += tRel * scaledDisp;
+        sumYAsc += ascDisp;
+        sumXYAsc += tRel * ascDisp;
+        sumYDesc += descDisp;
+        sumXYDesc += tRel * descDisp;
+        sumYVert += vertDisp;
+        sumXYVert += tRel * vertDisp;
+        sumYEw += ewDisp;
+        sumXYEw += tRel * ewDisp;
         sumXX += tRel * tRel;
-        validYs.push(scaledDisp);
+        validYs.push(currentTrackDisp);
         validCount++;
       }
 
@@ -1483,13 +1524,25 @@ class InSARService {
 
     // Compute linear regression statistics
     let calculatedVelocity = target.peakVelocity;
+    let ascVel = target.peakVelocity;
+    let descVel = parseFloat((target.peakVelocity * 0.94).toFixed(2));
+    let vertVel = parseFloat((target.peakVelocity * 1.15).toFixed(2));
+    let ewVel = parseFloat((horizExpansion * 0.12).toFixed(2));
     let r2 = 0.92;
     let rms = 3.4;
 
     if (validCount > 10) {
-      const slope = (validCount * sumXY - sumX * sumY) / (validCount * sumXX - sumX * sumX);
-      calculatedVelocity = parseFloat(slope.toFixed(2));
+      const denom = (validCount * sumXX - sumX * sumX);
+      if (denom !== 0) {
+        ascVel = parseFloat(((validCount * sumXYAsc - sumX * sumYAsc) / denom).toFixed(2));
+        descVel = parseFloat(((validCount * sumXYDesc - sumX * sumYDesc) / denom).toFixed(2));
+        vertVel = parseFloat(((validCount * sumXYVert - sumX * sumYVert) / denom).toFixed(2));
+        ewVel = parseFloat(((validCount * sumXYEw - sumX * sumYEw) / denom).toFixed(2));
+      }
+      calculatedVelocity = activeTrack.orbitDirection === "Descending" ? descVel : ascVel;
 
+      const sumY = activeTrack.orbitDirection === "Descending" ? sumYDesc : sumYAsc;
+      const slope = calculatedVelocity;
       const meanY = sumY / validCount;
       const ssTot = validYs.reduce((acc, y) => acc + Math.pow(y - meanY, 2), 0);
       const intercept = (sumY - slope * sumX) / validCount;
@@ -1513,9 +1566,19 @@ class InSARService {
       dates,
       decimalYears,
       displacementTimeSeries,
+      ascendingTimeSeries,
+      descendingTimeSeries,
       rawDisplacementTimeSeries,
       verticalTimeSeries,
       eastWestTimeSeries,
+      ascendingVelocity: ascVel,
+      descendingVelocity: descVel,
+      verticalVelocity: vertVel,
+      eastWestVelocity: ewVel,
+      ascendingTrackNumber: ascTrack.trackNumber,
+      descendingTrackNumber: descTrack.trackNumber,
+      ascendingFrameId: ascTrack.frameId,
+      descendingFrameId: descTrack.frameId,
       errorBars,
       coherence,
       satellites,

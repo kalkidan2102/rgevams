@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { X, Building2, User, MapPin, Activity, CheckCircle2, ArrowRight, ShieldAlert, Cpu, Compass, Layers } from "lucide-react";
-import { SectorData } from "../../data/sectors";
+import { SectorData } from "../../data/Sectors";
 
 interface SectorDetailModalProps {
   sector: SectorData | null;

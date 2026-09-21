@@ -133,7 +133,7 @@ export function EarthquakeDetailPanel({
   } | null>(null);
 
   useEffect(() => {
-    if (waveSource !== "furi") {
+    if (!earthquake || waveSource !== "furi") {
       setFuriWaveData(null);
       return;
     }
@@ -141,7 +141,11 @@ export function EarthquakeDetailPanel({
     let active = true;
     setIsFuriLoading(true);
 
-    fetch(`/api/seismic/furi?eventTime=${encodeURIComponent(earthquake.dateTime)}&component=${waveComponent}&magnitude=${earthquake.magnitude}&depth=${earthquake.depth}`)
+    const qEventTime = encodeURIComponent(earthquake.dateTime || new Date().toISOString());
+    const qMag = earthquake.magnitude ?? 5.0;
+    const qDepth = earthquake.depth ?? 10;
+
+    fetch(`/api/seismic/furi?eventTime=${qEventTime}&component=${waveComponent}&magnitude=${qMag}&depth=${qDepth}`)
       .then(res => {
         if (!res.ok) {
           throw new Error("HTTP error " + res.status);
@@ -165,9 +169,10 @@ export function EarthquakeDetailPanel({
     return () => {
       active = false;
     };
-  }, [earthquake.id, earthquake.dateTime, earthquake.magnitude, earthquake.depth, waveComponent, waveSource]);
+  }, [earthquake?.id, earthquake?.dateTime, earthquake?.magnitude, earthquake?.depth, waveComponent, waveSource]);
 
   const formattedDate = useMemo(() => {
+    if (!earthquake?.dateTime) return "N/A";
     return new Date(earthquake.dateTime).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
@@ -177,7 +182,7 @@ export function EarthquakeDetailPanel({
       second: "2-digit",
       timeZoneName: "short"
     });
-  }, [earthquake.dateTime]);
+  }, [earthquake?.dateTime]);
 
   const getRelativeTime = (dateStr: string) => {
     const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -390,8 +395,9 @@ ${filterLine ? filterLine + "\n" : ""}st.plot()`;
 
   // 90 Days Seismic Rate & Peak Magnitude history generator
   const ninetyDaysData = useMemo(() => {
+    if (!earthquake) return [];
     let hash = 0;
-    const eqId = earthquake.id;
+    const eqId = earthquake.id || "eq";
     for (let i = 0; i < eqId.length; i++) {
       hash = eqId.charCodeAt(i) + ((hash << 5) - hash);
     }
@@ -404,19 +410,19 @@ ${filterLine ? filterLine + "\n" : ""}st.plot()`;
 
       // Simulated main shock around day 60
       if (d === 60) {
-        maxMag = earthquake.magnitude;
-        dailyCount = Math.round(earthquake.magnitude * 12 + 6);
+        maxMag = earthquake.magnitude ?? 5.0;
+        dailyCount = Math.round((earthquake.magnitude ?? 5.0) * 12 + 6);
       } else if (d > 60 && d <= 76) {
         // Aftershock decay
         const daysAfter = d - 60;
         const decay = Math.exp(-daysAfter * 0.2);
-        maxMag = Math.max(1.2, earthquake.magnitude - (daysAfter * 0.22) + Math.sin(d * 1.5) * 0.3);
-        dailyCount = baseFreq + Math.round((earthquake.magnitude * 12) * decay);
+        maxMag = Math.max(1.2, (earthquake.magnitude ?? 5.0) - (daysAfter * 0.22) + Math.sin(d * 1.5) * 0.3);
+        dailyCount = baseFreq + Math.round(((earthquake.magnitude ?? 5.0) * 12) * decay);
       } else if (d >= 54 && d < 60) {
         // Foreshock build-up
         const daysBefore = 60 - d;
-        maxMag = Math.max(1.2, earthquake.magnitude - (daysBefore * 0.5) + Math.cos(d * 1.2) * 0.2);
-        dailyCount = baseFreq + Math.round((earthquake.magnitude * 3) / daysBefore);
+        maxMag = Math.max(1.2, (earthquake.magnitude ?? 5.0) - (daysBefore * 0.5) + Math.cos(d * 1.2) * 0.2);
+        dailyCount = baseFreq + Math.round(((earthquake.magnitude ?? 5.0) * 3) / daysBefore);
       }
 
       data.push({
@@ -426,7 +432,7 @@ ${filterLine ? filterLine + "\n" : ""}st.plot()`;
       });
     }
     return data;
-  }, [earthquake.id, earthquake.magnitude]);
+  }, [earthquake?.id, earthquake?.magnitude]);
 
   // Regional Seismic Monitoring Nodes
   const REGIONAL_NODES = useMemo(() => [
@@ -446,6 +452,20 @@ ${filterLine ? filterLine + "\n" : ""}st.plot()`;
 
   // Compute nearest seismic monitoring node and node telemetry parameters for ALL epicenters
   const nodeTelemetry = useMemo(() => {
+    if (!earthquake || !earthquake.coordinates) {
+      return {
+        nodeCode: "IU.FURI",
+        nodeName: "Entoto Observatory",
+        nodeRegion: "Addis Ababa",
+        distanceKm: 0,
+        pWaveTravelSec: "0.0",
+        sWaveTravelSec: "0.0",
+        pga: "0.020",
+        mmi: "III (Weak)",
+        focalSolution: { strike: 30, dip: 45, rake: -90 },
+        status: "Node Telemetry Retrieved"
+      };
+    }
     const [lat, lng] = earthquake.coordinates;
     let closest = REGIONAL_NODES[0];
     let minDistance = Infinity;
@@ -472,12 +492,14 @@ ${filterLine ? filterLine + "\n" : ""}st.plot()`;
     const pWaveTravelSec = (distKm / 6.2).toFixed(1);
     const sWaveTravelSec = (distKm / 3.6).toFixed(1);
 
-    const pga = Math.min(0.85, (0.015 * Math.pow(10, 0.45 * earthquake.magnitude) / Math.max(5, distKm * 0.75))).toFixed(3);
-    const mmi = earthquake.magnitude >= 6.0 ? "VII (Very Strong)" : earthquake.magnitude >= 5.0 ? "VI (Strong)" : earthquake.magnitude >= 4.0 ? "IV (Light)" : "III (Weak)";
+    const mag = earthquake.magnitude ?? 5.0;
+    const pga = Math.min(0.85, (0.015 * Math.pow(10, 0.45 * mag) / Math.max(5, distKm * 0.75))).toFixed(3);
+    const mmi = mag >= 6.0 ? "VII (Very Strong)" : mag >= 5.0 ? "VI (Strong)" : mag >= 4.0 ? "IV (Light)" : "III (Weak)";
 
     let hash = 0;
-    for (let i = 0; i < earthquake.id.length; i++) {
-      hash = earthquake.id.charCodeAt(i) + ((hash << 5) - hash);
+    const eqId = earthquake.id || "eq";
+    for (let i = 0; i < eqId.length; i++) {
+      hash = eqId.charCodeAt(i) + ((hash << 5) - hash);
     }
     const strike = Math.abs((hash * 17) % 360);
     const dip = Math.abs((hash * 13) % 45 + 35);
@@ -495,16 +517,27 @@ ${filterLine ? filterLine + "\n" : ""}st.plot()`;
       focalSolution: { strike, dip, rake },
       status: "Node Telemetry Retrieved"
     };
-  }, [earthquake.coordinates, earthquake.magnitude, earthquake.id, REGIONAL_NODES]);
+  }, [earthquake?.coordinates, earthquake?.magnitude, earthquake?.id, REGIONAL_NODES]);
 
   // Dynamic Geologist observatory DSS (Decision Support System) assessment report
   const dssAssessment = useMemo(() => {
+    if (!earthquake || !earthquake.coordinates) {
+      return {
+        region: "East African Rift Segment",
+        risk: "Moderate (Yellow)",
+        nearbyVolcano: "Mount Fentale (~25 km)",
+        recommendation: "Deploy local station micro-seismic arrays.",
+        nodeCode: "IU.FURI",
+        nodeDistance: 10
+      };
+    }
     const [lat, lng] = earthquake.coordinates;
-    const loc = earthquake.location.toLowerCase();
+    const loc = (earthquake.location || "").toLowerCase();
+    const mag = earthquake.magnitude ?? 5.0;
 
     let region = "East African Rift Segment";
     let nearbyVolcano = "Mount Fentale (~25 km)";
-    let risk = earthquake.magnitude >= 5.5 ? "Critical (Red)" : earthquake.magnitude >= 4.5 ? "High (Orange)" : "Moderate (Yellow)";
+    let risk = mag >= 5.5 ? "Critical (Red)" : mag >= 4.5 ? "High (Orange)" : "Moderate (Yellow)";
     let recommendation = "Deploy local station micro-seismic arrays and record baseline ground motion velocity.";
 
     if (lat < 6.5 && lng < 37.8) {
@@ -541,7 +574,9 @@ ${filterLine ? filterLine + "\n" : ""}st.plot()`;
       nodeCode: nodeTelemetry.nodeCode,
       nodeDistance: nodeTelemetry.distanceKm
     };
-  }, [earthquake.coordinates, earthquake.location, earthquake.magnitude, nodeTelemetry]);
+  }, [earthquake?.coordinates, earthquake?.location, earthquake?.magnitude, nodeTelemetry]);
+
+  if (!earthquake) return null;
 
   return (
     <motion.div
