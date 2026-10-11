@@ -231,9 +231,6 @@ export function formatSmartTremorMessages(eq: any, customConfig?: any): SmartTre
     <!-- Header Banner -->
     <div style="background: linear-gradient(135deg, #0E4A72 0%, #07263c 100%); color: #ffffff; padding: 20px 24px; border-bottom: 3px solid #D48F29;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-        <span style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #F7D08A;">
-          Federal Democratic Republic of Ethiopia
-        </span>
         <span style="font-size: 10px; font-family: monospace; background: rgba(212, 143, 41, 0.25); color: #F7D08A; padding: 2px 8px; border-radius: 4px; border: 1px solid #D48F29;">
           EOC CODE: SSGI-EQ-${Date.now().toString().slice(-6)}
         </span>
