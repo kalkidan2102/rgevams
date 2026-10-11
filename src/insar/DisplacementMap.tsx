@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "../../lib/LeafletFix.ts";
 import {
   InSARRasterMap,
   VolcanoTarget,

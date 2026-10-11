@@ -1,5 +1,26 @@
 [
   {
+    "id": "disp_auto_1791424422688_70",
+    "eventId": "us6000tzry",
+    "type": "both",
+    "eventTitle": "M 4.6 Seismic Tremor - 12 km ENE of Metahāra, Ethiopia",
+    "magnitude": 4.6,
+    "depth": 10,
+    "location": "12 km ENE of Metahāra, Ethiopia",
+    "severity": "Orange",
+    "recipientsCount": 5,
+    "recipients": [
+      "danieladane2196@gmail.com",
+      "getakalkidan541@gmail.com",
+      "+251911223344",
+      "+251922334455",
+      "+251933445566"
+    ],
+    "status": "dispatched",
+    "timestamp": "2026-10-08T01:53:42.688Z",
+    "details": "Automated geohazard trigger (USGS Real-time Telemetry Ingest): Earthquake magnitude M 4.6 exceeded threshold (M ≥ 4.5). Automated SMS and Email broadcasts dispatched to 5 endpoints."
+  },
+  {
     "id": "disp_auto_1789928316404_658",
     "eventId": "eq_live_1789928316404",
     "type": "both",

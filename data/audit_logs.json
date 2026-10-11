@@ -1,5 +1,16 @@
 [
   {
+    "id": "log_1791424422714_355",
+    "action": "automated_alert_dispatch",
+    "volcanoId": "us6000tzry",
+    "volcanoName": "Earthquake M 4.6 (12 km ENE of Metahāra, Ethiopia)",
+    "performedBy": "Automated Early Warning System (ESSGI)",
+    "performedByEmail": "earlywarning.telemetry@essgi.gov.et",
+    "performedByRole": "system",
+    "details": "Automated M 5.0+ Geohazard Alert broadcasted for event: M4.6 in \"12 km ENE of Metahāra, Ethiopia\". Broadcasted to 3 SMS endpoints and 2 emails.",
+    "timestamp": "2026-10-08T01:53:42.714Z"
+  },
+  {
     "id": "log_1789928316406_117",
     "action": "automated_alert_dispatch",
     "volcanoId": "eq_live_1789928316404",

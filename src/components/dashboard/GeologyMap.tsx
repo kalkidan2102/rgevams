@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
-import "../../lib/LeafletFix.ts";
+import "../../lib/leafletFix.ts";
 import { Volcano, Earthquake, SeverityLevel, SelectedItem, GnssStation } from "../../types";
 import { ETHIOPIA_ACTIVE_ZONES } from "../../data/volcanoes";
 import { ETHIOPIA_GNSS_STATIONS } from "../../data/earthquakes";
