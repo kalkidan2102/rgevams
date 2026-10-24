@@ -6,6 +6,24 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import nodemailer from "nodemailer";
+import {
+  findUserByEmail,
+  listUsers,
+  normalizeEmail,
+  removeUser,
+  serializeUser,
+  updateUser,
+} from "./src/server/userStore";
+import { createUserToken, requireUserAuth, requireUserRole } from "./src/server/userAuth";
+import { approveUser, changeUserRole as setUserRole, rejectUser } from "./src/server/userAdmin";
+import { authenticateUser } from "./src/server/userLogin";
+import { registerUser } from "./src/server/userRegistration";
+import {
+  hasDispatchForEventId,
+  isRecentUSGSEvent,
+  USGS_ALERT_MAX_AGE_MS,
+  USGS_ALERT_SOURCE,
+} from "./src/lib/earthquakeAlerts";
 
 dotenv.config();
 
@@ -47,10 +65,10 @@ app.get("/api/mongodb/status", (req, res) => {
 
 // In-Memory fallback cache & persistent files
 const DATA_DIR = path.join(process.cwd(), "data");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
 const VOLCANOES_FILE = path.join(DATA_DIR, "volcanoes.json");
 const EARTHQUAKES_FILE = path.join(DATA_DIR, "historical_earthquakes.json");
 const AUDIT_LOGS_FILE = path.join(DATA_DIR, "audit_logs.json");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
 const SECTORS_FILE = path.join(DATA_DIR, "sectors.json");
 const NEWS_FILE = path.join(DATA_DIR, "news.json");
 const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, "announcements.json");
@@ -717,124 +735,22 @@ if (!fs.existsSync(ALERT_DISPATCHES_FILE)) {
   );
 }
 
-// Seed baseline users
-const defaultUsers = [
-  {
-    id: "superadmin@essgi.gov.et",
-    name: "Super Admin (Directorate General)",
-    email: "superadmin@essgi.gov.et",
-    role: "superadmin",
-    status: "approved",
-    institution: "ESSGI Directorate General Command",
-    password: "super",
-    registeredAt: new Date().toISOString(),
-    approvedAt: new Date().toISOString(),
-    approvedBy: "System Master",
-  },
-  {
-    id: "dg@essgi.gov.et",
-    name: "Director General",
-    email: "dg@essgi.gov.et",
-    role: "admin",
-    status: "approved",
-    institution: "ESSGI Directorate Manager",
-    password: "0000",
-    registeredAt: new Date().toISOString(),
-    approvedAt: new Date().toISOString(),
-    approvedBy: "Super Admin",
-  },
-  {
-    id: "kalgetachew764@gmail.com",
-    name: "Kalkidan Getachew",
-    email: "kalgetachew764@gmail.com",
-    role: "official",
-    status: "approved",
-    institution: "Ethiopian Space Science and Geospatial Institute (ESSGI)",
-    password: "1234",
-    registeredAt: new Date().toISOString(),
-    approvedAt: new Date().toISOString(),
-    approvedBy: "Director General",
-  },
-  {
-    id: "pending.official@essgi.gov.et",
-    name: "Dr. Abera Teklu",
-    email: "pending.official@essgi.gov.et",
-    role: "official",
-    status: "pending",
-    institution: "Semera University Seismology Lab",
-    password: "1234",
-    registeredAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: "pending.admin@essgi.gov.et",
-    name: "Eng. Tigist Haile",
-    email: "pending.admin@essgi.gov.et",
-    role: "admin",
-    status: "pending",
-    institution: "DRMC IT Security Division",
-    password: "0000",
-    registeredAt: new Date(Date.now() - 3600000 * 18).toISOString(),
-  },
-  {
-    id: "visitor@essgi.gov.et",
-    name: "Guest Geophysicist",
-    email: "visitor@essgi.gov.et",
-    role: "guest",
-    status: "approved",
-    institution: "Geospatial Institute (Visitor)",
-    password: "guest",
-    registeredAt: new Date().toISOString(),
-  },
-];
-
-if (!fs.existsSync(USERS_FILE)) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2), "utf-8");
-} else {
-  // Ensure default users exist in file if not present
-  try {
-    const existing = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-    let updated = false;
-    defaultUsers.forEach((du) => {
-      if (
-        !existing.some(
-          (u: any) => u.email.toLowerCase() === du.email.toLowerCase(),
-        )
-      ) {
-        existing.push(du);
-        updated = true;
-      }
-    });
-    if (updated) {
-      fs.writeFileSync(USERS_FILE, JSON.stringify(existing, null, 2), "utf-8");
-    }
-  } catch (e) {
-    fs.writeFileSync(
-      USERS_FILE,
-      JSON.stringify(defaultUsers, null, 2),
-      "utf-8",
-    );
-  }
-}
-
 // Read helper functions
 function getUsers() {
   try {
     const data = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-    return data.map((u: any) => ({
-      ...u,
-      status: u.status || "approved",
+    if (!Array.isArray(data)) return [];
+    return data.map((user: any) => ({
+      ...user,
+      status: user.status || "approved",
     }));
-  } catch (err) {
-    return defaultUsers;
+  } catch {
+    return [];
   }
 }
 
-function saveUsers(users: any) {
-  try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to write users data:", err);
-  }
+function saveUsers(users: any[]) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
 }
 
 function getAuditLogs() {
@@ -1173,6 +1089,29 @@ function getAlertDispatches() {
   return defaultAlertDispatches;
 }
 
+function getRecentUSGSAlertDispatches() {
+  const now = Date.now();
+  return getAlertDispatches()
+    .filter((dispatch: any) => {
+      const dispatchedAt = new Date(dispatch.timestamp).getTime();
+      return (
+        dispatch.source === USGS_ALERT_SOURCE &&
+        Number.isFinite(dispatchedAt) &&
+        dispatchedAt <= now &&
+        now - dispatchedAt <= USGS_ALERT_MAX_AGE_MS
+      );
+    })
+    .map((dispatch: any) => ({
+      id: dispatch.id,
+      eventId: dispatch.eventId,
+      source: dispatch.source,
+      timestamp: dispatch.timestamp,
+      magnitude: dispatch.magnitude,
+      location: dispatch.location,
+      severity: dispatch.severity,
+    }));
+}
+
 function saveAlertDispatches(dispatches: any) {
   try {
     fs.writeFileSync(
@@ -1187,441 +1126,213 @@ function saveAlertDispatches(dispatches: any) {
 
 // API Routes
 // 0. Authentication Endpoints
-app.post("/api/auth/register", (req, res) => {
-  const { name, email, role, institution, password, confirmPassword } =
-    req.body;
-  if (!name || !email || !role || !password) {
-    return res.status(400).json({
-      error:
-        "Missing required registration fields (name, email/ID, role, password)",
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const result = await registerUser(req.body);
+    if (result.success === false) return res.status(result.status).json({ error: result.error });
+    const newUser = result.user;
+
+    saveAuditLog({
+      id: `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      action: "register_request",
+      performedBy: newUser.name,
+      performedByEmail: newUser.email,
+      performedByRole: newUser.role,
+      details: `Registration request submitted for ${newUser.name} (${newUser.email}) as ${newUser.role.toUpperCase()}. Awaiting Super Admin authorization.`,
+      timestamp: new Date().toISOString(),
     });
+
+    return res.status(201).json({
+      success: true,
+      requiresApproval: true,
+      message: `Registration submitted successfully! Your request for '${newUser.role.toUpperCase()}' access is now pending Super Admin approval.`,
+      user: {
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        status: newUser.status,
+        institution: newUser.institution,
+      },
+    });
+  } catch (error: any) {
+    if (error?.code === "23505" || error?.cause?.code === "23505") {
+      return res.status(400).json({ error: "Email or ID is already registered." });
+    }
+    return res.status(503).json({ error: "User registration is temporarily unavailable." });
   }
-
-  if (password !== confirmPassword) {
-    return res.status(400).json({ error: "Passwords do not match" });
-  }
-
-  if (role !== "official" && role !== "admin" && role !== "superadmin") {
-    return res
-      .status(400)
-      .json({ error: "Invalid role selected for security clearance" });
-  }
-
-  const users = getUsers();
-  const exists = users.some(
-    (u: any) => u.email.toLowerCase() === email.toLowerCase(),
-  );
-  if (exists) {
-    return res.status(400).json({ error: "Email or ID is already registered" });
-  }
-
-  // New registrations default to pending status for Super Admin approval
-  const newUser = {
-    id: email.toLowerCase(),
-    name,
-    email: email.toLowerCase(),
-    role,
-    status: "pending", // Pending Super Admin authorization
-    institution:
-      institution ||
-      (role === "admin"
-        ? "ESSGI Directorate"
-        : "Ethiopian Space Science and Geospatial Institute"),
-    password,
-    registeredAt: new Date().toISOString(),
-  };
-
-  users.push(newUser);
-  saveUsers(users);
-
-  // Log audit
-  saveAuditLog({
-    id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    action: "register_request",
-    performedBy: name,
-    performedByEmail: email.toLowerCase(),
-    performedByRole: role,
-    details: `Registration request submitted for ${name} (${email.toLowerCase()}) as ${role.toUpperCase()}. Awaiting Super Admin authorization.`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({
-    success: true,
-    requiresApproval: true,
-    message: `Registration submitted successfully! Your request for '${role.toUpperCase()}' access is now pending Super Admin approval.`,
-    user: {
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      status: newUser.status,
-      institution: newUser.institution,
-    },
-  });
 });
 
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
+  if (typeof email !== "string" || typeof password !== "string") {
     return res.status(400).json({ error: "Missing ID/email or password" });
   }
 
-  const users = getUsers();
-  const user = users.find(
-    (u: any) =>
-      u.email.toLowerCase() === email.toLowerCase() && u.password === password,
-  );
+  try {
+    const result = await authenticateUser(email, password);
+    if (result.success === false) {
+      return res.status(result.status).json({ error: result.error, ...(result.accountStatus ? { status: result.accountStatus } : {}) });
+    }
+    const user = result.user;
 
-  if (!user) {
-    return res
-      .status(401)
-      .json({ error: "Invalid credentials. Unauthorized access." });
-  }
-
-  // Check account approval status
-  if (user.status === "pending") {
-    return res.status(403).json({
-      error: `Account Pending Authorization: Your registered account as '${user.role.toUpperCase()}' is currently awaiting Super Admin approval. Please contact the ESSGI Directorate.`,
-      status: "pending",
+    const token = createUserToken(user);
+    return res.json({
+      success: true,
+      message: "Logged in successfully",
+      token,
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        institution: user.institution,
+      },
     });
+  } catch {
+    return res.status(503).json({ error: "Authentication service is temporarily unavailable." });
   }
-
-  if (user.status === "rejected") {
-    return res.status(403).json({
-      error:
-        "Access Denied: Your registration request was rejected by the Super Admin.",
-      status: "rejected",
-    });
-  }
-
-  res.json({
-    success: true,
-    message: "Logged in successfully",
-    user: {
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      institution: user.institution,
-    },
-  });
 });
 
-// 0.5 Super Admin User Management Endpoints
-app.get("/api/admin/users", (req, res) => {
-  const userRole = req.headers["x-user-role"] || req.query.role;
-  if (
-    userRole &&
-    userRole !== "superadmin" &&
-    userRole !== "admin" &&
-    userRole !== "official"
-  ) {
-    return res.status(403).json({
-      error: "Access denied. Only authorized personnel can view user accounts.",
-    });
-  }
-
-  const users = getUsers().map((u: any) => ({
-    id: u.id || u.email,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    status: u.status || "approved",
-    institution: u.institution,
-    registeredAt: u.registeredAt || new Date().toISOString(),
-    approvedAt: u.approvedAt,
-    approvedBy: u.approvedBy,
-  }));
-
-  res.json({ success: true, count: users.length, users });
+app.get("/api/auth/me", requireUserAuth, (req, res) => {
+  res.json({ success: true, user: serializeUser(req.authUser!) });
 });
 
-app.post("/api/admin/approve-user", (req, res) => {
-  const { email, role, adminRole, adminEmail } = req.body;
-  const targetEmail = (email || "").toLowerCase();
-  const performerName =
-    req.headers["x-user-name"] || adminEmail || "Administrator";
-  const userRole = req.headers["x-user-role"] || adminRole || "admin";
+app.get("/api/admin/users", requireUserAuth, requireUserRole("admin", "superadmin"), async (_req, res) => {
+  try {
+    const users = (await listUsers()).map(serializeUser);
+    return res.json({ success: true, count: users.length, users });
+  } catch {
+    return res.status(503).json({ error: "User directory is temporarily unavailable." });
+  }
+});
 
-  const users = getUsers();
-  const index = users.findIndex(
-    (u: any) => u.email.toLowerCase() === targetEmail,
-  );
-
-  if (index !== -1) {
-    users[index].status = "approved";
-    if (role) users[index].role = role;
-    users[index].approvedAt = new Date().toISOString();
-    users[index].approvedBy = String(performerName);
-    saveUsers(users);
-
+async function approveUserAccount(email: string, requestedRole: unknown, req: express.Request, res: express.Response) {
+  try {
+    const actor = req.authUser!;
+    const result = await approveUser(email, actor, requestedRole);
+    if (result.success === false) return res.status(result.status).json({ error: result.error });
+    const approved = result.user;
     saveAuditLog({
-      id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      id: `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       action: "approve_user",
-      performedBy: String(performerName),
-      performedByEmail: String(adminEmail || "admin@essgi.gov.et"),
-      performedByRole: String(userRole),
-      details: `Approved user account: ${users[index].name} (${users[index].email}).`,
+      performedBy: actor.name,
+      performedByEmail: actor.email,
+      performedByRole: actor.role,
+      details: `Approved user account: ${approved.name} (${approved.email}) with role [${approved.role.toUpperCase()}].`,
       timestamp: new Date().toISOString(),
     });
+    return res.json({ success: true, message: `User '${approved.name}' approved successfully.`, user: serializeUser(approved) });
+  } catch {
+    return res.status(503).json({ error: "User approval is temporarily unavailable." });
   }
+}
 
-  res.json({
-    success: true,
-    message: `User ${targetEmail} authorized successfully.`,
-  });
-});
-
-app.post("/api/admin/reject-user", (req, res) => {
-  const { email, adminRole, adminEmail } = req.body;
-  const targetEmail = (email || "").toLowerCase();
-  const performerName =
-    req.headers["x-user-name"] || adminEmail || "Administrator";
-  const userRole = req.headers["x-user-role"] || adminRole || "admin";
-
-  const users = getUsers();
-  const index = users.findIndex(
-    (u: any) => u.email.toLowerCase() === targetEmail,
-  );
-
-  if (index !== -1) {
-    users[index].status = "rejected";
-    saveUsers(users);
-
+async function rejectUserAccount(email: string, req: express.Request, res: express.Response) {
+  try {
+    const result = await rejectUser(email, req.authUser!.role);
+    if (result.success === false) return res.status(result.status).json({ error: result.error });
+    const rejected = result.user;
+    const actor = req.authUser!;
     saveAuditLog({
-      id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      id: `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       action: "reject_user",
-      performedBy: String(performerName),
-      performedByEmail: String(adminEmail || "admin@essgi.gov.et"),
-      performedByRole: String(userRole),
-      details: `Rejected user account: ${users[index].name} (${users[index].email}).`,
+      performedBy: actor.name,
+      performedByEmail: actor.email,
+      performedByRole: actor.role,
+      details: `Rejected user account: ${rejected.name} (${rejected.email}).`,
       timestamp: new Date().toISOString(),
     });
+    return res.json({ success: true, message: `User '${rejected.name}' request rejected.`, user: serializeUser(rejected) });
+  } catch {
+    return res.status(503).json({ error: "User rejection is temporarily unavailable." });
   }
+}
 
-  res.json({ success: true, message: `User ${targetEmail} rejected.` });
-});
+const adminOrSuperadmin = [requireUserAuth, requireUserRole("admin", "superadmin")];
+const superadminOnly = [requireUserAuth, requireUserRole("superadmin")];
+app.post("/api/admin/approve-user", ...adminOrSuperadmin, (req, res) => approveUserAccount(req.body.email || "", req.body.role, req, res));
+app.post("/api/admin/reject-user", ...adminOrSuperadmin, (req, res) => rejectUserAccount(req.body.email || "", req, res));
+app.post("/api/admin/users/:email/approve", ...adminOrSuperadmin, (req, res) => approveUserAccount(req.params.email, req.body.role, req, res));
+app.put("/api/admin/users/:email/approve", ...adminOrSuperadmin, (req, res) => approveUserAccount(req.params.email, req.body.role, req, res));
+app.post("/api/admin/users/:email/reject", ...adminOrSuperadmin, (req, res) => rejectUserAccount(req.params.email, req, res));
+app.put("/api/admin/users/:email/reject", ...adminOrSuperadmin, (req, res) => rejectUserAccount(req.params.email, req, res));
 
-app.post("/api/admin/users/:email/approve", (req, res) => {
-  const userRole = req.headers["x-user-role"];
-  const performerName = req.headers["x-user-name"] || "Super Admin";
-  if (userRole !== "superadmin" && userRole !== "admin") {
-    return res.status(403).json({
-      error:
-        "Access denied. Super Admin privilege required to approve accounts.",
+async function changeUserRole(email: string, role: unknown, req: express.Request, res: express.Response) {
+  try {
+    const existing = await findUserByEmail(email);
+    const result = await setUserRole(email, role);
+    if (result.success === false) return res.status(result.status).json({ error: result.error });
+    const updated = result.user;
+    const actor = req.authUser!;
+    saveAuditLog({
+      id: `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      action: "change_role",
+      performedBy: actor.name,
+      performedByEmail: actor.email,
+      performedByRole: actor.role,
+      details: `Updated role for ${updated.name} (${updated.email}) from [${(existing?.role || "unknown").toUpperCase()}] to [${updated.role.toUpperCase()}].`,
+      timestamp: new Date().toISOString(),
     });
+    return res.json({ success: true, message: `User '${updated.name}' role changed to ${updated.role.toUpperCase()}.`, user: serializeUser(updated) });
+  } catch {
+    return res.status(503).json({ error: "User role update is temporarily unavailable." });
   }
+}
 
-  const targetEmail = req.params.email.toLowerCase();
-  const users = getUsers();
-  const index = users.findIndex(
-    (u: any) => u.email.toLowerCase() === targetEmail,
-  );
+app.patch("/api/admin/users/:email/role", ...superadminOnly, (req, res) => changeUserRole(req.params.email, req.body.role, req, res));
+app.put("/api/admin/users/:email/role", ...superadminOnly, (req, res) => changeUserRole(req.params.email, req.body.role, req, res));
 
-  if (index === -1) {
-    return res.status(404).json({ error: "User account not found." });
+app.put("/api/admin/users/:email/unlock", ...superadminOnly, async (req, res) => {
+  try {
+    const user = await findUserByEmail(req.params.email);
+    if (!user) return res.status(404).json({ error: "User account not found." });
+    const updated = await updateUser(user.id, {
+      failedLoginAttempts: 0,
+      isLocked: false,
+      lockUntil: null,
+    });
+    if (!updated) return res.status(404).json({ error: "User account not found." });
+    const actor = req.authUser!;
+    saveAuditLog({
+      id: `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      action: "unlock_user",
+      performedBy: actor.name,
+      performedByEmail: actor.email,
+      performedByRole: actor.role,
+      details: `Unlocked user account: ${updated.name} (${updated.email}).`,
+      timestamp: new Date().toISOString(),
+    });
+    return res.json({ success: true, message: `Account '${updated.email}' unlocked successfully.`, user: serializeUser(updated) });
+  } catch {
+    return res.status(503).json({ error: "Account unlock is temporarily unavailable." });
   }
-
-  users[index].status = "approved";
-  users[index].approvedAt = new Date().toISOString();
-  users[index].approvedBy = String(performerName);
-
-  saveUsers(users);
-
-  // Write audit log
-  saveAuditLog({
-    id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    action: "approve_user",
-    performedBy: String(performerName),
-    performedByEmail: String(
-      req.headers["x-user-email"] || "superadmin@essgi.gov.et",
-    ),
-    performedByRole: String(userRole),
-    details: `Approved clearance for user account: ${users[index].name} (${users[index].email}) with role [${users[index].role.toUpperCase()}].`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({
-    success: true,
-    message: `User '${users[index].name}' approved successfully.`,
-    user: users[index],
-  });
 });
 
-app.post("/api/admin/users/:email/reject", (req, res) => {
-  const userRole = req.headers["x-user-role"];
-  const performerName = req.headers["x-user-name"] || "Super Admin";
-  if (userRole !== "superadmin" && userRole !== "admin") {
-    return res
-      .status(403)
-      .json({ error: "Access denied. Super Admin privilege required." });
+app.delete("/api/admin/users/:email", ...superadminOnly, async (req, res) => {
+  const targetEmail = normalizeEmail(req.params.email);
+  if (targetEmail === "superadmin@essgi.gov.et") return res.status(400).json({ error: "Cannot delete the root Super Administrator account." });
+  try {
+    const user = await findUserByEmail(targetEmail);
+    if (!user) return res.status(404).json({ error: "User account not found." });
+    await removeUser(user.id);
+    const actor = req.authUser!;
+    saveAuditLog({
+      id: `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      action: "delete_user",
+      performedBy: actor.name,
+      performedByEmail: actor.email,
+      performedByRole: actor.role,
+      details: `Deleted user account: ${user.name} (${user.email}).`,
+      timestamp: new Date().toISOString(),
+    });
+    return res.json({ success: true, message: `Account '${user.name}' removed successfully.` });
+  } catch {
+    return res.status(503).json({ error: "User deletion is temporarily unavailable." });
   }
-
-  const targetEmail = req.params.email.toLowerCase();
-  const users = getUsers();
-  const index = users.findIndex(
-    (u: any) => u.email.toLowerCase() === targetEmail,
-  );
-
-  if (index === -1) {
-    return res.status(404).json({ error: "User account not found." });
-  }
-
-  users[index].status = "rejected";
-  saveUsers(users);
-
-  saveAuditLog({
-    id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    action: "reject_user",
-    performedBy: String(performerName),
-    performedByEmail: String(
-      req.headers["x-user-email"] || "superadmin@essgi.gov.et",
-    ),
-    performedByRole: String(userRole),
-    details: `Rejected clearance request for user account: ${users[index].name} (${users[index].email}).`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({
-    success: true,
-    message: `User '${users[index].name}' request rejected.`,
-    user: users[index],
-  });
 });
 
-app.patch("/api/admin/users/:email/role", (req, res) => {
-  const userRole = req.headers["x-user-role"];
-  const performerName = req.headers["x-user-name"] || "Super Admin";
-  if (userRole !== "superadmin" && userRole !== "admin") {
-    return res
-      .status(403)
-      .json({ error: "Access denied. Super Admin privilege required." });
-  }
-
-  const { role } = req.body;
-  if (
-    !role ||
-    (role !== "official" &&
-      role !== "admin" &&
-      role !== "superadmin" &&
-      role !== "guest")
-  ) {
-    return res.status(400).json({ error: "Invalid role specified." });
-  }
-
-  const targetEmail = req.params.email.toLowerCase();
-  const users = getUsers();
-  const index = users.findIndex(
-    (u: any) => u.email.toLowerCase() === targetEmail,
-  );
-
-  if (index === -1) {
-    return res.status(404).json({ error: "User account not found." });
-  }
-
-  const oldRole = users[index].role;
-  users[index].role = role;
-  saveUsers(users);
-
-  saveAuditLog({
-    id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    action: "change_role",
-    performedBy: String(performerName),
-    performedByEmail: String(
-      req.headers["x-user-email"] || "superadmin@essgi.gov.et",
-    ),
-    performedByRole: String(userRole),
-    details: `Updated role for ${users[index].name} (${users[index].email}) from [${oldRole.toUpperCase()}] to [${role.toUpperCase()}].`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({
-    success: true,
-    message: `User '${users[index].name}' role changed to ${role.toUpperCase()}.`,
-    user: users[index],
-  });
-});
-
-app.delete("/api/admin/users/:email", (req, res) => {
-  const userRole = req.headers["x-user-role"];
-  const performerName = req.headers["x-user-name"] || "Super Admin";
-  if (userRole !== "superadmin" && userRole !== "admin") {
-    return res
-      .status(403)
-      .json({ error: "Access denied. Super Admin privilege required." });
-  }
-
-  const targetEmail = req.params.email.toLowerCase();
-  let users = getUsers();
-  const userToDelete = users.find(
-    (u: any) => u.email.toLowerCase() === targetEmail,
-  );
-
-  if (!userToDelete) {
-    return res.status(404).json({ error: "User account not found." });
-  }
-
-  users = users.filter((u: any) => u.email.toLowerCase() !== targetEmail);
-  saveUsers(users);
-
-  saveAuditLog({
-    id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-    action: "delete_user",
-    performedBy: String(performerName),
-    performedByEmail: String(
-      req.headers["x-user-email"] || "superadmin@essgi.gov.et",
-    ),
-    performedByRole: String(userRole),
-    details: `Deleted user account: ${userToDelete.name} (${userToDelete.email}).`,
-    timestamp: new Date().toISOString(),
-  });
-
-  res.json({
-    success: true,
-    message: `Account '${userToDelete.name}' removed successfully.`,
-  });
-});
-
-app.post("/api/admin/users/seed-test-pending", (req, res) => {
-  const sampleNames = [
-    "Dr. Belayneh Assefa",
-    "Eng. Rahel Wolde",
-    "Girma Dejene",
-    "Dr. Solomon Tadesse",
-  ];
-  const sampleInst = [
-    "Addis Ababa University",
-    "Semera University",
-    "Hawassa Geothermal Lab",
-    "DRMC Central Command",
-  ];
-  const roles: Array<"official" | "admin"> = ["official", "admin"];
-
-  const randomName =
-    sampleNames[Math.floor(Math.random() * sampleNames.length)];
-  const randomInst = sampleInst[Math.floor(Math.random() * sampleInst.length)];
-  const randomRole = roles[Math.floor(Math.random() * roles.length)];
-  const email = `test.pending_${Date.now()}@essgi.gov.et`;
-
-  const users = getUsers();
-  const newUser = {
-    id: email,
-    name: randomName,
-    email: email,
-    role: randomRole,
-    status: "pending",
-    institution: randomInst,
-    password: "1234",
-    registeredAt: new Date().toISOString(),
-  };
-
-  users.push(newUser);
-  saveUsers(users);
-
-  res.json({
-    success: true,
-    message: "Demo pending registration created!",
-    user: newUser,
-  });
+app.post("/api/admin/users/seed-test-pending", ...superadminOnly, (_req, res) => {
+  res.status(410).json({ error: "Synthetic accounts are disabled. Use an isolated test database for workflow tests." });
 });
 
 // 0.8 Alert Threshold Configuration & Automated Notification Endpoints
@@ -1630,24 +1341,10 @@ app.get("/api/admin/alert-config", (req, res) => {
   res.json({ success: true, config });
 });
 
-app.post("/api/admin/alert-config", (req, res) => {
-  const userRole = req.headers["x-user-role"] || req.body.adminRole;
-  const performerName =
-    req.headers["x-user-name"] || req.body.adminName || "Administrator";
-  const performerEmail =
-    req.headers["x-user-email"] || req.body.adminEmail || "admin@essgi.gov.et";
-
-  if (
-    userRole &&
-    userRole !== "superadmin" &&
-    userRole !== "admin" &&
-    userRole !== "official"
-  ) {
-    return res.status(403).json({
-      error:
-        "Access denied. Administrator clearance required to modify alert threshold parameters.",
-    });
-  }
+app.post("/api/admin/alert-config", requireUserAuth, requireUserRole("superadmin", "admin", "official"), (req, res) => {
+  const userRole = req.authUser!.role;
+  const performerName = req.authUser!.name;
+  const performerEmail = req.authUser!.email;
 
   const existing = getAlertConfig();
   const {
@@ -1736,12 +1433,10 @@ app.get("/api/admin/alert-dispatches", (req, res) => {
   res.json({ success: true, count: dispatches.length, dispatches });
 });
 
-app.post("/api/admin/alert-config/test-dispatch", (req, res) => {
-  const userRole = req.headers["x-user-role"] || req.body.adminRole;
-  const performerName =
-    req.headers["x-user-name"] || req.body.adminName || "Administrator";
-  const performerEmail =
-    req.headers["x-user-email"] || req.body.adminEmail || "admin@essgi.gov.et";
+app.post("/api/admin/alert-config/test-dispatch", requireUserAuth, requireUserRole("superadmin", "admin", "official"), (req, res) => {
+  const userRole = req.authUser!.role;
+  const performerName = req.authUser!.name;
+  const performerEmail = req.authUser!.email;
 
   const config = getAlertConfig();
   const { testEvent } = req.body;
@@ -1843,15 +1538,11 @@ function processEarthquakeAlert(eq: any, source: string = "Telemetry Ingest") {
     }
 
     const dispatches = getAlertDispatches();
-    const alreadyDispatched = dispatches.some(
-      (d: any) =>
-        d.eventId === eq.id ||
-        (d.location === eq.location &&
-          Math.abs(d.magnitude - eq.magnitude) < 0.1 &&
-          Math.abs(
-            new Date(d.timestamp).getTime() - new Date(eq.dateTime).getTime(),
-          ) < 60000),
-    );
+    if (typeof eq.id !== "string" || eq.id.trim().length === 0) {
+      return null;
+    }
+
+    const alreadyDispatched = hasDispatchForEventId(dispatches, eq.id);
 
     if (alreadyDispatched) {
       return null;
@@ -1881,6 +1572,7 @@ function processEarthquakeAlert(eq: any, source: string = "Telemetry Ingest") {
     const newDispatch = {
       id: "disp_auto_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
       eventId: eq.id,
+      source,
       type:
         config.emailAlertsEnabled && config.smsAlertsEnabled
           ? "both"
@@ -1930,21 +1622,24 @@ function processEarthquakeAlert(eq: any, source: string = "Telemetry Ingest") {
 }
 
 // 0.4 Admin pending approvals count
-app.get("/api/admin/pending-count", (req, res) => {
-  const users = getUsers();
-  const pendingUsers = users.filter((u: any) => u.status === "pending");
-  res.json({
-    success: true,
-    pendingCount: pendingUsers.length,
-    pendingUsers: pendingUsers.map((u: any) => ({
-      id: u.id || u.email,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      institution: u.institution,
-      registeredAt: u.registeredAt,
-    })),
-  });
+app.get("/api/admin/pending-count", requireUserAuth, requireUserRole("admin", "superadmin"), async (_req, res) => {
+  try {
+    const pendingUsers = (await listUsers()).filter((user) => user.status === "pending");
+    return res.json({
+      success: true,
+      pendingCount: pendingUsers.length,
+      pendingUsers: pendingUsers.map((user) => ({
+        id: user.id || user.email,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        institution: user.institution,
+        registeredAt: user.registeredAt,
+      })),
+    });
+  } catch {
+    return res.status(503).json({ error: "Pending user queue is temporarily unavailable." });
+  }
 });
 
 // CSV Export Endpoints for Reports and Telemetry
@@ -2586,35 +2281,11 @@ app.delete("/api/volcanoes/:id", (req, res) => {
 });
 
 // 3.5 Retrieve Admin Audit Logs (Admin & Super Admin)
-app.get("/api/audit-logs", (req, res) => {
-  const userRole = req.headers["x-user-role"];
-  if (
-    userRole &&
-    userRole !== "admin" &&
-    userRole !== "superadmin" &&
-    userRole !== "official"
-  ) {
-    return res.status(403).json({
-      error:
-        "Access denied. Only Admins and Super Admins can retrieve audit logs.",
-    });
-  }
+app.get("/api/audit-logs", requireUserAuth, requireUserRole("admin", "superadmin"), (req, res) => {
   res.json(getAuditLogs());
 });
 
-app.get("/api/admin/audit-logs", (req, res) => {
-  const userRole = req.headers["x-user-role"];
-  if (
-    userRole &&
-    userRole !== "admin" &&
-    userRole !== "superadmin" &&
-    userRole !== "official"
-  ) {
-    return res.status(403).json({
-      error:
-        "Access denied. Only Admins and Super Admins can retrieve audit logs.",
-    });
-  }
+app.get("/api/admin/audit-logs", requireUserAuth, requireUserRole("admin", "superadmin"), (req, res) => {
   const logs = getAuditLogs();
   res.json({ success: true, count: logs.length, logs });
 });
@@ -2670,10 +2341,12 @@ app.get("/api/earthquakes", async (req, res) => {
 
     // Check for high-magnitude events (M >= 4.5) and trigger automated geohazard dispatch alerts
     usgsEvents.forEach((ue: any) => {
-      if (ue.magnitude >= 4.5) {
-        processEarthquakeAlert(ue, "USGS Real-time Telemetry Ingest");
+      if (ue.magnitude >= 4.5 && isRecentUSGSEvent(ue)) {
+        processEarthquakeAlert(ue, USGS_ALERT_SOURCE);
       }
     });
+
+    const recentAlertDispatches = getRecentUSGSAlertDispatches();
 
     // Merge with our high-value historically monitored earthquakes in Ethiopia
     const historical = getHistoricalEarthquakes();
@@ -2689,6 +2362,7 @@ app.get("/api/earthquakes", async (req, res) => {
       count: combined.length,
       realTimeCount: usgsEvents.length,
       historicalCount: historical.length,
+      recentAlertDispatches,
       data: combined,
     });
   } catch (error: any) {
@@ -2704,6 +2378,7 @@ app.get("/api/earthquakes", async (req, res) => {
       count: historical.length,
       realTimeCount: 0,
       historicalCount: historical.length,
+      recentAlertDispatches: getRecentUSGSAlertDispatches(),
       data: historical,
     });
   }
@@ -3456,7 +3131,7 @@ app.post("/api/ask-georisk", async (req, res) => {
     "seismogram",
     "gps",
     "geodesy",
-    "kibru",
+   
     "ethiopia",
     "east africa",
   ];

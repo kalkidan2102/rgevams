@@ -7,7 +7,6 @@ import {
   Search,
   Filter,
   RefreshCw,
-  Plus,
   Trash2,
   CheckCircle2,
   XCircle,
@@ -18,7 +17,6 @@ import {
   Key,
   ChevronRight,
   UserPlus,
-  Sparkles,
   Lock,
   LogOut,
   Activity,
@@ -86,18 +84,6 @@ export function SuperAdminDashboard({
 
   const isSuperAdminOrAdmin = currentUser.role === "superadmin" || currentUser.role === "admin";
 
-  const handleQuickSuperAdmin = () => {
-    const superAdminUser = {
-      name: "Dr. Biruk Tesfaye",
-      email: "superadmin@essgi.gov.et",
-      role: "superadmin" as UserRoleType,
-      institution: "ESSGI Directorate General"
-    };
-    if (onAuthenticateUser) {
-      onAuthenticateUser(superAdminUser);
-    }
-  };
-
   const handleGatewayLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -143,7 +129,8 @@ export function SuperAdminDashboard({
           email: regEmail,
           institution: regInstitution || "Ethiopian Space Science and Geospatial Institute",
           role: regRole,
-          password: regPassword
+          password: regPassword,
+          confirmPassword: regConfirmPassword
         })
       });
       const data = await res.json();
@@ -327,20 +314,6 @@ export function SuperAdminDashboard({
       setActionLoadingEmail(null);
     }
   };
-
-  const handleSeedTestPending = async () => {
-    try {
-      const res = await authenticatedFetch("/api/admin/seed-test-pending", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        showToast("success", `🧪 Test Registration Created: ${data.user.name} (${data.user.role})`);
-        fetchUsersAndLogs();
-      }
-    } catch {
-      showToast("error", "Failed to seed test user");
-    }
-  };
-
 
   const handleApproveAllPending = async () => {
     if (pendingUsers.length === 0) return;
@@ -579,11 +552,8 @@ export function SuperAdminDashboard({
                   onChange={(e) => setRegRole(e.target.value as any)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#0085C8]"
                 >
-                  <option value="guest">GUEST (Public Geohazard Viewer)</option>
                   <option value="researcher">RESEARCHER / SCIENTIST (Analytics & GIS)</option>
                   <option value="official">DISASTER MANAGEMENT OFFICIAL (Monitoring & Alerts)</option>
-                  <option value="admin">ADMINISTRATOR (Operational & User Management)</option>
-                  <option value="superadmin">SUPER ADMINISTRATOR (Platform Governance)</option>
                 </select>
               </div>
 
@@ -681,15 +651,6 @@ export function SuperAdminDashboard({
                   {pendingUsers.length} PENDING
                 </span>
               )}
-            </button>
-
-            <button
-              onClick={handleSeedTestPending}
-              className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-[#F7D08A] font-bold rounded-xl text-xs border border-amber-500/40 transition-all cursor-pointer flex items-center gap-2 shadow-xs"
-              title="Generate a sample registration request to test the approval pipeline"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>🧪 Demo Pending Request</span>
             </button>
 
             {onOpenAuthModal && (
@@ -1310,15 +1271,6 @@ export function SuperAdminDashboard({
 
               {/* Quick Actions */}
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button
-                  onClick={handleSeedTestPending}
-                  className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-                  title="Add a sample pending request for testing"
-                >
-                  <Plus className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Seed Test Request</span>
-                </button>
-
                 {pendingUsers.length > 0 && (
                   <button
                     onClick={handleApproveAllPending}
@@ -1346,13 +1298,6 @@ export function SuperAdminDashboard({
                       There are currently no pending registration requests awaiting Super Admin authorization. All official and administrator accounts are cleared.
                     </p>
                   </div>
-                  <button
-                    onClick={handleSeedTestPending}
-                    className="mt-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Create Sample Pending Account</span>
-                  </button>
                 </div>
               ) : (
                 <div className="space-y-3">

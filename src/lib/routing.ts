@@ -40,6 +40,8 @@ export function getPathForTab(tab: string): string {
       return "/researcher-dashboard";
     case "admin-dashboard":
       return "/admin-dashboard";
+    case "official-dashboard":
+      return "/official-dashboard";
     case "home":
     default:
       return "/home";
@@ -63,6 +65,7 @@ export function getTabFromPath(pathname: string): string {
   if (cleanPath === "/staff-dashboard") return "staff-dashboard";
   if (cleanPath === "/researcher-dashboard" || cleanPath === "/research-dashboard") return "researcher-dashboard";
   if (cleanPath === "/admin-dashboard") return "admin-dashboard";
+  if (cleanPath === "/official-dashboard") return "official-dashboard";
   return "home";
 }
 

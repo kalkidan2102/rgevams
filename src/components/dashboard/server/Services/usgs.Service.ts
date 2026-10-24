@@ -1,4 +1,4 @@
-import { getPostgresEarthquakes } from "./postgres.service";
+import { getPostgresEarthquakes } from "./postgres.services";
 import { processEarthquakeAlert } from "./alert.service";
 import { IEarthquake } from "../models/Earthquake";
 

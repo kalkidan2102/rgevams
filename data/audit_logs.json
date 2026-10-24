@@ -1,5 +1,86 @@
 [
   {
+    "id": "log_1791719820650_734",
+    "action": "approve_user",
+    "performedBy": "Dr. Solomon Tadesse (Administrator)",
+    "performedByEmail": "admin@essgi.gov.et",
+    "performedByRole": "admin",
+    "details": "Approved user account: Eyad Ahmed (eyahm@gmail.com) with role [RESEARCHER].",
+    "timestamp": "2026-10-11T11:57:00.650Z"
+  },
+  {
+    "id": "log_1791719676635_900",
+    "action": "approve_user",
+    "performedBy": "Dr. Solomon Tadesse (Administrator)",
+    "performedByEmail": "admin@essgi.gov.et",
+    "performedByRole": "admin",
+    "details": "Approved user account: Daniel Adane (daniadane@gmail.com) with role [OFFICIAL].",
+    "timestamp": "2026-10-11T11:54:36.635Z"
+  },
+  {
+    "id": "log_1791719675239_802",
+    "action": "approve_user",
+    "performedBy": "Dr. Solomon Tadesse (Administrator)",
+    "performedByEmail": "admin@essgi.gov.et",
+    "performedByRole": "admin",
+    "details": "Approved user account: Daniel Adane (daniadane@gmail.com) with role [OFFICIAL].",
+    "timestamp": "2026-10-11T11:54:35.239Z"
+  },
+  {
+    "id": "log_1791719673562_473",
+    "action": "approve_user",
+    "performedBy": "Dr. Solomon Tadesse (Administrator)",
+    "performedByEmail": "admin@essgi.gov.et",
+    "performedByRole": "admin",
+    "details": "Approved user account: Daniel Adane (daniadane@gmail.com) with role [OFFICIAL].",
+    "timestamp": "2026-10-11T11:54:33.562Z"
+  },
+  {
+    "id": "log_1791717272933_866",
+    "action": "register_request",
+    "performedBy": "Eyad Ahmed",
+    "performedByEmail": "eyahm@gmail.com",
+    "performedByRole": "researcher",
+    "details": "Registration request submitted for Eyad Ahmed (eyahm@gmail.com) as RESEARCHER. Awaiting Super Admin authorization.",
+    "timestamp": "2026-10-11T11:14:32.933Z"
+  },
+  {
+    "id": "log_1791703567518_169",
+    "action": "approve_user",
+    "performedBy": "admin@essgi.gov.et",
+    "performedByEmail": "admin@essgi.gov.et",
+    "performedByRole": "admin",
+    "details": "Approved user account: Eyobed Getachew (eyobed@gmail.com).",
+    "timestamp": "2026-10-11T07:26:07.518Z"
+  },
+  {
+    "id": "log_1791703539583_446",
+    "action": "register_request",
+    "performedBy": "Daniel Adane",
+    "performedByEmail": "daniadane@gmail.com",
+    "performedByRole": "official",
+    "details": "Registration request submitted for Daniel Adane (daniadane@gmail.com) as OFFICIAL. Awaiting Super Admin authorization.",
+    "timestamp": "2026-10-11T07:25:39.583Z"
+  },
+  {
+    "id": "log_1791703221483_162",
+    "action": "approve_user",
+    "performedBy": "admin@essgi.gov.et",
+    "performedByEmail": "admin@essgi.gov.et",
+    "performedByRole": "admin",
+    "details": "Approved user account: Kalkidan Getachew (kalkidan@essgi.gov.et).",
+    "timestamp": "2026-10-11T07:20:21.483Z"
+  },
+  {
+    "id": "log_1791703164703_455",
+    "action": "register_request",
+    "performedBy": "Eyobed Getachew",
+    "performedByEmail": "eyobed@gmail.com",
+    "performedByRole": "admin",
+    "details": "Registration request submitted for Eyobed Getachew (eyobed@gmail.com) as ADMIN. Awaiting Super Admin authorization.",
+    "timestamp": "2026-10-11T07:19:24.703Z"
+  },
+  {
     "id": "log_1791424422714_355",
     "action": "automated_alert_dispatch",
     "volcanoId": "us6000tzry",

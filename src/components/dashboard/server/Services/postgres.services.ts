@@ -13,7 +13,7 @@ import {
   news,
   announcements
 } from "../../../../db/Schema";
-import { defaultUsers, IUser } from "../models/User";
+import { IUser } from "../models/User";
 import { defaultVolcanoes, IVolcano } from "../models/Volcano";
 import { defaultEarthquakes, IEarthquake } from "../models/Earthquake";
 import { defaultAlertConfig, defaultAlertDispatches, IAlertConfig, IAlertDispatch } from "../models/Alert";
@@ -179,31 +179,6 @@ export async function initPostgresSchemaAndSeed(): Promise<boolean> {
   try {
     const client = await pool.connect();
     try {
-      // 1. Seed Users if empty
-      const userCountRes = await client.query("SELECT COUNT(*) FROM users;");
-      if (parseInt(userCountRes.rows[0].count, 10) === 0) {
-        for (const u of defaultUsers) {
-          await client.query(`
-            INSERT INTO users (id, email, name, role, status, institution, password, registered_at, approved_at, approved_by, failed_login_attempts, is_locked)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            ON CONFLICT (email) DO NOTHING;
-          `, [
-            u.id,
-            u.email.toLowerCase(),
-            u.name,
-            u.role,
-            u.status,
-            u.institution,
-            u.password,
-            u.registeredAt,
-            u.approvedAt || null,
-            u.approvedBy || null,
-            u.failedLoginAttempts || 0,
-            u.isLocked || false
-          ]);
-        }
-      }
-
       // 4. Seed Volcanoes if empty
       const volcanoCountRes = await client.query("SELECT COUNT(*) FROM volcanoes;");
       if (parseInt(volcanoCountRes.rows[0].count, 10) === 0) {

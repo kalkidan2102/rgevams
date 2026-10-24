@@ -1,14 +1,11 @@
 import fs from "fs";
 import path from "path";
-import { defaultUsers, IUser } from "../models/User";
 import { defaultVolcanoes, IVolcano } from "../models/Volcano";
 import { defaultEarthquakes, IEarthquake } from "../models/Earthquake";
 import { defaultAlertConfig, defaultAlertDispatches, IAlertConfig, IAlertDispatch } from "../models/Alert";
 import { IAuditLog } from "../models/AuditLog";
 import { defaultSectors, defaultNews, defaultAnnouncements, ISector, INews, IAnnouncement } from "../models/SectorNews";
 import {
-  getPostgresUsers,
-  upsertPostgresUser,
   getPostgresVolcanoes,
   upsertPostgresVolcano,
   deletePostgresVolcano,
@@ -29,7 +26,6 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const VOLCANOES_FILE = path.join(DATA_DIR, "volcanoes.json");
 const EARTHQUAKES_FILE = path.join(DATA_DIR, "historical_earthquakes.json");
 const AUDIT_LOGS_FILE = path.join(DATA_DIR, "audit_logs.json");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
 const SECTORS_FILE = path.join(DATA_DIR, "sectors.json");
 const NEWS_FILE = path.join(DATA_DIR, "news.json");
 const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, "announcements.json");
@@ -67,57 +63,6 @@ export function initializeDataStore() {
     fs.writeFileSync(ALERT_DISPATCHES_FILE, JSON.stringify(defaultAlertDispatches, null, 2), "utf-8");
   }
 
-  if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2), "utf-8");
-  } else {
-    try {
-      const existing: IUser[] = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-      let updated = false;
-      defaultUsers.forEach(du => {
-        if (!existing.some(u => u.email.toLowerCase() === du.email.toLowerCase())) {
-          existing.push(du);
-          updated = true;
-        }
-      });
-      if (updated) {
-        fs.writeFileSync(USERS_FILE, JSON.stringify(existing, null, 2), "utf-8");
-      }
-    } catch (e) {
-      fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2), "utf-8");
-    }
-  }
-}
-
-// User methods
-export function getUsers(): IUser[] {
-  try {
-    const data = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-    return data.map((u: any) => ({
-      ...u,
-      status: u.status || "approved"
-    }));
-  } catch (err) {
-    return defaultUsers;
-  }
-}
-
-export async function asyncGetUsers(): Promise<IUser[]> {
-  try {
-    const pgUsers = await getPostgresUsers();
-    if (pgUsers && pgUsers.length > 0) {
-      saveUsers(pgUsers);
-      return pgUsers;
-    }
-  } catch (e) {}
-  return getUsers();
-}
-
-export function saveUsers(users: IUser[]) {
-  try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
-    // Asynchronously synchronize with PostgreSQL
-    users.forEach(u => upsertPostgresUser(u).catch(() => {}));
-  } catch {}
 }
 
 // Audit Logs

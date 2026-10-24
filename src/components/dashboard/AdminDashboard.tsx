@@ -35,9 +35,9 @@ import {
 import {
   subscribeUsers,
   subscribeAuditLogs,
-  saveUserToFirestore,
   addAlertToFirestore,
 } from "../../lib/dbService";
+import { authenticatedFetch } from "../../lib/api";
 
 import { generateRiskSummaryPdf } from "../../utils/pdfGenerator";
 
@@ -132,17 +132,7 @@ export function AdminDashboard({
     setLoading(true);
 
     try {
-      const headers: Record<string, string> = {
-        "X-User-Role": currentUser?.role || "admin",
-        "X-User-Email":
-          currentUser?.email || "admin@essgi.gov.et",
-        "X-User-Name":
-          currentUser?.name || "Administrator",
-      };
-
-      const res = await fetch("/api/admin/users", {
-        headers,
-      });
+      const res = await authenticatedFetch("/api/admin/users");
 
       if (res.ok) {
         const contentType = res.headers.get("content-type");
@@ -181,10 +171,7 @@ export function AdminDashboard({
         }
       }
 
-      const logsRes = await fetch(
-        "/api/admin/audit-logs",
-        { headers }
-      );
+      const logsRes = await authenticatedFetch("/api/admin/audit-logs");
 
       if (logsRes.ok) {
         const contentType =
@@ -218,7 +205,7 @@ export function AdminDashboard({
     fetchUsersAndLogs();
 
     const unsubUsers = subscribeUsers((fetchedUsers) => {
-      if (fetchedUsers && fetchedUsers.length > 0) {
+      if (fetchedUsers) {
         setUsers(fetchedUsers);
 
         setApprovedUsers(
@@ -263,25 +250,12 @@ export function AdminDashboard({
     setActionLoadingEmail(userEmail);
 
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "X-User-Role":
-          currentUser?.role || "admin",
-        "X-User-Email":
-          currentUser?.email ||
-          "admin@essgi.gov.et",
-        "X-User-Name":
-          currentUser?.name ||
-          "Administrator",
-      };
-
-      const res = await fetch(
+      const res = await authenticatedFetch(
         `/api/admin/users/${encodeURIComponent(
           userEmail
         )}/unlock`,
         {
           method: "PUT",
-          headers,
         }
       );
 
@@ -335,44 +309,24 @@ export function AdminDashboard({
     setActionLoadingEmail(userEmail);
 
     try {
-      const existingUser = users.find(
-        (u) =>
-          u.email.toLowerCase() ===
-          userEmail.toLowerCase()
-      );
-
-      if (existingUser) {
-        const updatedUser: UserAccount = {
-          ...existingUser,
-          status: "approved",
-          approvedAt:
-            new Date().toISOString(),
-          approvedBy: currentUser.email,
-        };
-
-        await saveUserToFirestore(updatedUser);
-      }
-
-      await fetch("/api/admin/approve-user", {
+      const response = await authenticatedFetch("/api/admin/approve-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           email: userEmail,
-          adminEmail: currentUser.email,
-          adminRole: currentUser.role,
         }),
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Approval failed.");
 
       setToastMessage({
         type: "success",
         text: `User ${userEmail} authorized successfully.`,
       });
-    } catch {
+      await fetchUsersAndLogs();
+    } catch (error) {
       setToastMessage({
         type: "error",
-        text: "Network error approving user.",
+        text: error instanceof Error ? error.message : "Unable to approve user.",
       });
     } finally {
       setActionLoadingEmail(null);
@@ -390,41 +344,24 @@ export function AdminDashboard({
     setActionLoadingEmail(userEmail);
 
     try {
-      const existingUser = users.find(
-        (u) =>
-          u.email.toLowerCase() ===
-          userEmail.toLowerCase()
-      );
-
-      if (existingUser) {
-        const updatedUser: UserAccount = {
-          ...existingUser,
-          status: "rejected",
-        };
-
-        await saveUserToFirestore(updatedUser);
-      }
-
-      await fetch("/api/admin/reject-user", {
+      const response = await authenticatedFetch("/api/admin/reject-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           email: userEmail,
-          adminEmail: currentUser.email,
-          adminRole: currentUser.role,
         }),
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Rejection failed.");
 
       setToastMessage({
         type: "success",
         text: `User ${userEmail} rejected or suspended.`,
       });
-    } catch {
+      await fetchUsersAndLogs();
+    } catch (error) {
       setToastMessage({
         type: "error",
-        text: "Network error rejecting user.",
+        text: error instanceof Error ? error.message : "Unable to reject user.",
       });
     } finally {
       setActionLoadingEmail(null);
@@ -453,49 +390,15 @@ export function AdminDashboard({
       const emailClean =
         grantEmailInput.trim().toLowerCase();
 
-      const existingUser = users.find(
-        (u) =>
-          u.email.toLowerCase() === emailClean
-      );
-
-      const userToSave: UserAccount =
-        existingUser
-          ? {
-              ...existingUser,
-              role: grantRoleInput,
-              status: "approved",
-            }
-          : {
-              id: "usr_" + Date.now(),
-              name: emailClean
-                .split("@")[0]
-                .toUpperCase(),
-              email: emailClean,
-              role: grantRoleInput,
-              status: "approved",
-              institution:
-                "Space Science & Geospatial Institute",
-              registeredAt:
-                new Date().toISOString(),
-              approvedAt:
-                new Date().toISOString(),
-              approvedBy: currentUser.email,
-            };
-
-      await saveUserToFirestore(userToSave);
-
-      await fetch("/api/admin/approve-user", {
+      const response = await authenticatedFetch("/api/admin/approve-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           email: emailClean,
           role: grantRoleInput,
-          adminEmail: currentUser.email,
-          adminRole: currentUser.role,
         }),
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Role grant failed.");
 
       setToastMessage({
         type: "success",

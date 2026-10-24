@@ -26,7 +26,7 @@ export interface AuthModalProps {
 }
 
 type AuthView = "signin" | "register" | "forgot";
-type RegisterableRole = "official" | "researcher" | "admin";
+type RegisterableRole = "official" | "researcher";
 
 interface AuthResponse {
   user?: UserAccount | UserRole;
@@ -149,62 +149,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setAuthToken(data.token);
       }
 
-      const activeUser = data.user || {
-        name: email.split("@")[0].replace(/[._]/g, " ").toUpperCase() || "Duty Officer",
-        email: email.toLowerCase(),
-        role: "official",
-        institution: "ESSGI Seismic & Volcanic Observation Center",
-        status: "approved"
-      };
+      if (!data.user || !data.token) {
+        setErrorMsg("Authentication response was incomplete. Please try again.");
+        setLoading(false);
+        return;
+      }
 
-      setSuccessMsg(`Access verified. Welcome, ${activeUser.name}.`);
+      setAuthToken(data.token);
+      setSuccessMsg(`Access verified. Welcome, ${data.user.name}.`);
       setLoading(false);
 
       setTimeout(() => {
-        onSuccess(activeUser);
+        onSuccess(data.user!);
         onClose();
         resetFormState();
       }, 500);
 
     } catch {
-      // Offline / Local Resilience Fallback
-      const lowerEmail = email.toLowerCase();
-      let fallbackUser: UserRole;
-
-      if (lowerEmail.includes("admin") || lowerEmail.includes("director") || lowerEmail.includes("dg")) {
-        fallbackUser = {
-          name: lowerEmail.includes("director") ? "Director General" : "System Administrator",
-          email: lowerEmail,
-          role: "admin",
-          institution: "FDRE Space Science & Geospatial Institute (ESSGI)",
-          status: "approved"
-        };
-      } else if (lowerEmail.includes("research") || lowerEmail.includes("sci") || lowerEmail.includes("lead")) {
-        fallbackUser = {
-          name: "Geophysical Researcher",
-          email: lowerEmail,
-          role: "researcher",
-          institution: "ESSGI Directorate of Earth Observation",
-          status: "approved"
-        };
-      } else {
-        fallbackUser = {
-          name: email.split("@")[0].replace(/[._]/g, " ").toUpperCase() || "Duty Officer",
-          email: lowerEmail,
-          role: "official",
-          institution: "ESSGI Seismic & Volcanic Observation Center",
-          status: "approved"
-        };
-      }
-
-      setSuccessMsg(`Access verified. Welcome, ${fallbackUser.name}.`);
+      setErrorMsg("Unable to connect to the authentication service. Please try again.");
       setLoading(false);
-
-      setTimeout(() => {
-        onSuccess(fallbackUser);
-        onClose();
-        resetFormState();
-      }, 500);
     }
   };
 
@@ -276,23 +239,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }, 2000);
 
     } catch {
-      // Local fallback
       setLoading(false);
-      setSuccessMsg(
-        "Account request submitted. Institutional authorization is required before access is granted."
-      );
-
-      setTimeout(() => {
-        const localUser: UserRole = {
-          name,
-          email: email.toLowerCase(),
-          role: regRole,
-          institution,
-          status: "pending"
-        };
-        onSuccess(localUser);
-        onClose();
-      }, 1800);
+      setErrorMsg("Unable to connect to the registration service. Please try again.");
     }
   };
 
@@ -598,7 +546,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   >
                     <option value="official">Operations Duty Officer</option>
                     <option value="researcher">Geophysical Researcher</option>
-                    <option value="admin">System Administrator</option>
                   </select>
                 </div>
               </div>

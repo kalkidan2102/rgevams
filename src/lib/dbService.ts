@@ -7,43 +7,6 @@ import { FALLBACK_EARTHQUAKES } from "../data/earthquakes";
 import { ETHIOPIA_GNSS_STATIONS } from "../data";
 import { authenticatedFetch } from "./api";
 
-// Initial Fallback Users for local state resilience
-const DEFAULT_USERS: UserAccount[] = [
-  {
-    id: "usr_admin_1",
-    name: "Dr. Getachew Bekele",
-    email: "admin@ssgi.gov.et",
-    role: "admin",
-    status: "approved",
-    institution: "Space Science & Geospatial Institute (Headquarters)",
-    registeredAt: "2025-01-10T08:00:00.000Z",
-    approvedAt: "2025-01-10T08:00:00.000Z",
-    approvedBy: "System Administrator"
-  },
-  {
-    id: "usr_official_1",
-    name: "Prof. Solomon Belay",
-    email: "director@ssgi.gov.et",
-    role: "official",
-    status: "approved",
-    institution: "ESSGI Directorate of Space Science",
-    registeredAt: "2025-01-15T09:30:00.000Z",
-    approvedAt: "2025-01-15T10:00:00.000Z",
-    approvedBy: "admin@ssgi.gov.et"
-  },
-  {
-    id: "usr_staff_1",
-    name: "Alemayehu Tadesse",
-    email: "staff@ssgi.gov.et",
-    role: "staff",
-    status: "approved",
-    institution: "Entoto Geophysical Observatory",
-    registeredAt: "2025-02-01T11:15:00.000Z",
-    approvedAt: "2025-02-01T12:00:00.000Z",
-    approvedBy: "admin@ssgi.gov.et"
-  }
-];
-
 // Initial Alerts for fallback resilience
 const DEFAULT_ALERTS: GeologicalAlert[] = [
   {
@@ -154,7 +117,7 @@ export function subscribeEarthquakes(onData: (earthquakes: Earthquake[]) => void
         if (contentType && contentType.includes("application/json")) {
           const data = await res.json();
           const list = data?.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : null);
-          if (list && list.length > 0) {
+          if (list) {
             if (!isCancelled) onData(list);
             return;
           }
@@ -241,9 +204,9 @@ export function subscribeUsers(onData: (users: UserAccount[]) => void): () => vo
           }
         }
       }
-      if (!isCancelled) onData(DEFAULT_USERS);
+      if (!isCancelled) onData([]);
     } catch {
-      if (!isCancelled) onData(DEFAULT_USERS);
+      if (!isCancelled) onData([]);
     }
   };
 
@@ -254,28 +217,6 @@ export function subscribeUsers(onData: (users: UserAccount[]) => void): () => vo
     isCancelled = true;
     clearInterval(intervalId);
   };
-}
-
-// User Accounts CRUD
-export async function saveUserToFirestore(user: UserAccount): Promise<void> {
-  try {
-    await authenticatedFetch(`/api/admin/users/${encodeURIComponent(user.email)}/role`, {
-      method: "PUT",
-      body: JSON.stringify({ role: user.role })
-    });
-  } catch (error) {
-    console.warn("Failed to update user in PostgreSQL API:", error);
-  }
-}
-
-export async function deleteUserFromFirestore(id: string): Promise<void> {
-  try {
-    await authenticatedFetch(`/api/admin/users/${encodeURIComponent(id)}`, {
-      method: "DELETE"
-    });
-  } catch (error) {
-    console.warn("Failed to delete user in PostgreSQL API:", error);
-  }
 }
 
 // 5. Subscribe Audit Logs (PostgreSQL Admin API)

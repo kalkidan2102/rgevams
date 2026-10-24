@@ -40,7 +40,7 @@ import {
   Linkedin,
   Youtube,
 } from "lucide-react";
-import { SECTORS_DATA, SectorData } from "../../data/sectors";
+import { SECTORS_DATA, SectorData } from "../../data/Sectors";
 import { ANNOUNCEMENTS_DATA } from "../../data/announcements";
 
 export interface PageProps {

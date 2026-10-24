@@ -222,9 +222,9 @@ export function Navbar({
         window.scrollTo({ top: 0, behavior: "smooth" });
         break;
       case "dashboard":
-        setActiveTab("dashboard");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        break;
+  setActiveTab(getDashboardTabForRole(userRole.role) as any);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  break;
       case "map":
         setActiveTab("map");
         window.scrollTo({ top: 0, behavior: "smooth" });

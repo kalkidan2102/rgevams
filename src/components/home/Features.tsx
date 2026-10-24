@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { SECTORS_DATA, SectorData } from "../../data/sectors";
+import { SECTORS_DATA, SectorData } from "../../data/Sectors";
 import { SectorDetailModal } from "../Modals/SectorModal";
 import { LayoutGrid, Map, BarChart3, FileText, ArrowUpRight, Satellite, Globe, Activity, ShieldCheck } from "lucide-react";
 

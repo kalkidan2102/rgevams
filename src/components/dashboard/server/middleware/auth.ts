@@ -1,8 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
-import { getUsers } from "../services/dataStore.service";
+import { getPostgresUsers } from "../Services/postgres.services";
 
-const JWT_SECRET = process.env.JWT_SECRET || "essgi_geomonitor_secure_jwt_secret_key_2025_et";
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32 || /replace|your[_ -]?secret|example/i.test(secret)) {
+    throw new Error("JWT_SECRET must be configured with a unique secret of at least 32 characters");
+  }
+  return secret;
+}
 
 export interface AuthenticatedRequest extends Request {
   userRole?: string;
@@ -39,7 +45,7 @@ export function createJwtToken(payload: { email: string; name: string; role: str
   const b64Payload = Buffer.from(JSON.stringify(fullPayload)).toString("base64url");
 
   const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", getJwtSecret())
     .update(`${b64Header}.${b64Payload}`)
     .digest("base64url");
 
@@ -56,7 +62,7 @@ export function verifyJwtToken(token: string): JwtPayload | null {
 
     const [b64Header, b64Payload, signature] = parts;
     const expectedSig = crypto
-      .createHmac("sha256", JWT_SECRET)
+      .createHmac("sha256", getJwtSecret())
       .update(`${b64Header}.${b64Payload}`)
       .digest("base64url");
 
@@ -82,7 +88,7 @@ export function verifyJwtToken(token: string): JwtPayload | null {
  * Middleware: Requires a valid JWT in Authorization header (Bearer <token>)
  * Extracts REAL user and role from server database state
  */
-export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers["authorization"] || req.headers["Authorization"];
   let token: string | null = null;
 
@@ -106,8 +112,13 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
   }
 
   // Cross-reference with real data store to get current status and role
-  const users = getUsers();
-  const realUser = users.find((u) => u.email.toLowerCase() === payload.email.toLowerCase());
+  let realUser;
+  try {
+    const users = await getPostgresUsers();
+    realUser = users.find((u) => u.email.toLowerCase() === payload.email.toLowerCase());
+  } catch {
+    return res.status(503).json({ error: "Authentication service is temporarily unavailable." });
+  }
 
   if (!realUser) {
     return res.status(401).json({
@@ -143,7 +154,7 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
 /**
  * Optional Auth middleware: if JWT exists and is valid, populates identity; otherwise defaults to guest
  */
-export function optionalAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function optionalAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers["authorization"] || req.headers["Authorization"];
   let token: string | null = null;
 
@@ -154,8 +165,9 @@ export function optionalAuth(req: AuthenticatedRequest, res: Response, next: Nex
   if (token) {
     const payload = verifyJwtToken(token);
     if (payload && payload.email) {
-      const users = getUsers();
-      const realUser = users.find((u) => u.email.toLowerCase() === payload.email.toLowerCase());
+      try {
+        const users = await getPostgresUsers();
+        const realUser = users.find((u) => u.email.toLowerCase() === payload.email.toLowerCase());
       if (realUser && realUser.status === "approved") {
         req.userId = realUser.id || realUser.email;
         req.userEmail = realUser.email;
@@ -163,6 +175,9 @@ export function optionalAuth(req: AuthenticatedRequest, res: Response, next: Nex
         req.userRole = realUser.role;
         req.userInstitution = realUser.institution;
         return next();
+      }
+      } catch {
+        return res.status(503).json({ error: "Authentication service is temporarily unavailable." });
       }
     }
   }

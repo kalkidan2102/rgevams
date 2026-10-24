@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool, PoolConfig } from 'pg';
 import * as schema from './Schema';
@@ -8,21 +9,21 @@ declare global {
 
 export const createPool = () => {
   if (!global._postgresPool) {
-    const config: PoolConfig = process.env.SQL_HOST
+    const config: PoolConfig = process.env.DATABASE_URL
+      ? { connectionString: process.env.DATABASE_URL }
+      : process.env.SQL_HOST || process.env.SQL_DB_NAME
       ? {
           host: process.env.SQL_HOST,
           port: parseInt(process.env.SQL_PORT || '5432', 10),
           user: process.env.SQL_USER || process.env.SQL_ADMIN_USER || 'postgres',
-          password: process.env.SQL_PASSWORD || process.env.SQL_ADMIN_PASSWORD || '',
-          database: process.env.SQL_DB_NAME || 'cloud_sql_development_database',
+          password: process.env.SQL_PASSWORD ?? process.env.SQL_ADMIN_PASSWORD,
+          database: process.env.SQL_DB_NAME || 'rgevams',
         }
-      : process.env.DATABASE_URL
-      ? { connectionString: process.env.DATABASE_URL }
       : {
           host: 'localhost',
           port: 5432,
           user: 'postgres',
-          password: '',
+          password: undefined,
           database: 'rgevams',
         };
 

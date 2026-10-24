@@ -10,11 +10,11 @@ import {
   savePostgresAlertConfig, 
   getPostgresAlertDispatches, 
   savePostgresAlertDispatch 
-} from "../services/postgres.service";
+} from "../Services/postgres.services";
 import { defaultAlertConfig, IAlertDispatch } from "../models/Alert";
 import { sanitizeUser } from "../utils/crypto";
-import { generateSmartTremorAlert, calculateTectonicSummary } from "../services/alert.service";
-import { sendOfficialAlertEmail, getSmtpStatus, testSmtpConnection } from "../services/email.service";
+import { generateSmartTremorAlert, calculateTectonicSummary } from "../Services/alert.service";
+import { sendOfficialAlertEmail, getSmtpStatus, testSmtpConnection } from "../Services/email.service";
 
 export async function listUsers(req: AuthenticatedRequest, res: Response) {
   try {

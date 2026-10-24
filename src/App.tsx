@@ -21,6 +21,12 @@ import { AuthModal } from "./components/auth/AuthModal";
 import { Navbar } from "./components/layout/navbar";
 import { Footer } from "./components/layout/Footer";
 import { getPathForTab, getTabFromPath, navigateToTabPath } from "./lib/routing";
+import {
+  getSeenUSGSEventIds,
+  getUnseenRecentUSGSDispatches,
+  markUSGSDispatchesSeen,
+  type EarthquakeAlertDispatch,
+} from "./lib/earthquakeAlerts";
 import HomePage from "./components/home/HomePage";
 import { ContactModal } from "./components/ContactModal";
 import {
@@ -123,35 +129,7 @@ import {
   EyeOff
 } from "lucide-react";
 import { playGeologicalAlertSound } from "./utils/audio";
-import { authenticatedFetch, clearAuthToken } from "./lib/api";
-
-// Predefined Simulated Simulation Accounts
-const SIMULATION_ROLES: UserRole[] = [
-  {
-    name: "Guest Geophysicist",
-    email: "visitor@essgi.gov.et",
-    role: "guest",
-    institution: "Geospatial Institute (Visitor)"
-  },
-  {
-    name: "Abebe Kebede (Lead Researcher)",
-    email: "researcher@essgi.gov.et",
-    role: "researcher",
-    institution: "ESSGI Directorate of Earth Observation & Geodynamics"
-  },
-  {
-    name: "Kalkidan Getachew (Duty Officer)",
-    email: "staff.duty@essgi.gov.et",
-    role: "official",
-    institution: "ESSGI Real-Time Seismic & Volcanic Observation Center"
-  },
-  {
-    name: "Directorate Administrator",
-    email: "admin@essgi.gov.et",
-    role: "admin",
-    institution: "FDRE Space Science and Geospatial Institute"
-  }
-];
+import { authenticatedFetch, clearAuthToken, getAuthToken, setAuthToken } from "./lib/api";
 
 // 30-Day Simulated Historical Trends for Dashboard Metric Modal expansions
 const SEISMIC_TREND_DATA = [
@@ -784,6 +762,8 @@ export default function App() {
         if (tabParam) {
           const matched = getTabFromPath("/" + tabParam);
           setActiveTabRaw(matched as any);
+        } else {
+          setActiveTabRaw("home");
         }
       }
     };
@@ -1079,30 +1059,39 @@ export default function App() {
     timestamp: string;
   }
   const [activeAudioAlertToasts, setActiveAudioAlertToasts] = useState<AudioAlertToast[]>([]);
+  const [recentAlertDispatches, setRecentAlertDispatches] = useState<EarthquakeAlertDispatch[]>([]);
   const knownEventIdsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
   const systemMountTimeRef = useRef<number>(Date.now());
+  const notifiedEarthquakeIdsByUserRef = useRef<Map<string, Set<string>>>(new Map());
 
   // current logged user role
-  const [currentUser, setCurrentUser] = useState<UserRole>(() => {
-    try {
-      const saved = localStorage.getItem("essgi_current_user");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {
-      // fallback
-    }
-    return SIMULATION_ROLES[0]; // Default to Guest Geophysicist (Read-Only)
+  const [currentUser, setCurrentUser] = useState<UserRole>({
+    name: "Guest Geophysicist",
+    email: "visitor@essgi.gov.et",
+    role: "guest",
+    institution: "Geospatial Institute (Visitor)",
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem("essgi_current_user", JSON.stringify(currentUser));
-    } catch {
-      // ignore
-    }
-  }, [currentUser]);
+    let cancelled = false;
+    const restoreSession = async () => {
+      if (!getAuthToken()) return;
+      try {
+        const response = await authenticatedFetch("/api/auth/me");
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) clearAuthToken();
+          return;
+        }
+        const data = await response.json();
+        if (!cancelled && data.user) setCurrentUser(data.user);
+      } catch {
+        // Keep a potentially valid token for retry when the service returns.
+      }
+    };
+    void restoreSession();
+    return () => { cancelled = true; };
+  }, []);
 
   // Audit log states
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
@@ -1261,6 +1250,7 @@ export default function App() {
         }
         return;
       } else {
+        if (data.token) setAuthToken(data.token);
         setAuthSuccessMsg(`Welcome back, ${data.user.name}! Access Granted.`);
         setTimeout(() => {
           setCurrentUser(data.user);
@@ -1273,86 +1263,8 @@ export default function App() {
           setActiveTab(getDashboardForUserRole(data.user.role));
         }, 800);
       }
-    } catch (err) {
-      // Offline / Local Fallback Authentication
-      const lowerEmail = emailToUse.toLowerCase();
-      if (lowerEmail === "admin@essgi.gov.et" || lowerEmail === "director.general@essgi.gov.et" || lowerEmail === "dg@essgi.gov.et") {
-        const u = {
-          id: lowerEmail,
-          name: lowerEmail.includes("director") ? "Director General" : "Directorate Administrator",
-          email: lowerEmail,
-          role: "admin" as const,
-          institution: "FDRE Space Science and Geospatial Institute (ESSGI)"
-        };
-        setAuthSuccessMsg(`Welcome, ${u.name}! Access Granted.`);
-        setTimeout(() => {
-          setCurrentUser(u);
-          setIsAuthModalOpen(false);
-          setAuthEmail("");
-          setAuthPassword("");
-          setAuthSuccessMsg(null);
-          setViewMode("dashboard");
-          setActiveTab("admin-dashboard");
-        }, 800);
-      } else if (lowerEmail === "researcher@essgi.gov.et") {
-        const u = {
-          id: lowerEmail,
-          name: "Abebe Kebede (Lead Researcher)",
-          email: lowerEmail,
-          role: "researcher" as const,
-          institution: "ESSGI Directorate of Earth Observation & Geodynamics"
-        };
-        setAuthSuccessMsg(`Welcome, ${u.name}! Access Granted.`);
-        setTimeout(() => {
-          setCurrentUser(u);
-          setIsAuthModalOpen(false);
-          setAuthEmail("");
-          setAuthPassword("");
-          setAuthSuccessMsg(null);
-          setViewMode("dashboard");
-          setActiveTab("researcher-dashboard");
-        }, 800);
-      } else if (lowerEmail === "staff.duty@essgi.gov.et" || lowerEmail === "kalgetachew764@gmail.com") {
-        const u = {
-          id: lowerEmail,
-          name: "Kalkidan Getachew (Duty Officer)",
-          email: lowerEmail,
-          role: "official" as const,
-          institution: "ESSGI Real-Time Seismic & Volcanic Observation Center"
-        };
-        setAuthSuccessMsg(`Welcome, ${u.name}! Access Granted.`);
-        setTimeout(() => {
-          setCurrentUser(u);
-          setIsAuthModalOpen(false);
-          setAuthEmail("");
-          setAuthPassword("");
-          setAuthSuccessMsg(null);
-          setViewMode("dashboard");
-          setActiveTab("official-dashboard");
-        }, 800);
-      } else {
-        // Fallback for any other custom login
-        const isAdm = lowerEmail.includes("admin") || lowerEmail.includes("dg");
-        const isRes = lowerEmail.includes("research") || lowerEmail.includes("sci");
-        const assignedRole: UserRoleType = isAdm ? "admin" : isRes ? "researcher" : "official";
-        const customUser = {
-          id: lowerEmail,
-          name: lowerEmail.split("@")[0].toUpperCase(),
-          email: lowerEmail,
-          role: assignedRole,
-          institution: "Ethiopian Space Science and Geospatial Institute"
-        };
-        setAuthSuccessMsg(`Welcome, ${customUser.name}! Access Granted.`);
-        setTimeout(() => {
-          setCurrentUser(customUser);
-          setIsAuthModalOpen(false);
-          setAuthEmail("");
-          setAuthPassword("");
-          setAuthSuccessMsg(null);
-          setViewMode("dashboard");
-          setActiveTab(getDashboardForUserRole(assignedRole));
-        }, 800);
-      }
+    } catch {
+      setAuthError("Unable to connect to the authentication service. Please try again.");
     }
   };
 
@@ -1363,8 +1275,8 @@ export default function App() {
       setAuthError("Please fill in all registration fields.");
       return;
     }
-    if (authPassword.length < 6) {
-      setAuthError("Password security requirement: minimum length is 6 characters.");
+    if (authPassword.length < 8) {
+      setAuthError("Password security requirement: minimum length is 8 characters.");
       return;
     }
     if (authPassword !== authConfirmPassword) {
@@ -1389,49 +1301,17 @@ export default function App() {
       if (!res.ok) {
         setAuthError(data.error || "Registration failed");
       } else {
-        setAuthSuccessMsg(`Account registered successfully as ${authRole.toUpperCase()}! Directing to your dashboard...`);
+        setAuthSuccessMsg("Registration submitted. Your account is pending Super Admin approval.");
         setTimeout(() => {
-          const registeredUser = {
-            id: authEmail.toLowerCase(),
-            name: authName,
-            email: authEmail.toLowerCase(),
-            role: authRole as UserRoleType,
-            institution: authInstitution || "ESSGI Directorate"
-          };
-          setCurrentUser(registeredUser);
-          setIsAuthModalOpen(false);
           setAuthName("");
           setAuthEmail("");
           setAuthInstitution("");
           setAuthPassword("");
           setAuthConfirmPassword("");
-          setAuthSuccessMsg(null);
-          setViewMode("dashboard");
-          setActiveTab(getDashboardForUserRole(authRole));
-        }, 1200);
+        }, 1800);
       }
-    } catch (err) {
-      // Fallback local registration & immediate login redirect
-      setAuthSuccessMsg(`Registration complete for ${authName}! Directing to your dashboard...`);
-      setTimeout(() => {
-        const registeredUser = {
-          id: authEmail.toLowerCase(),
-          name: authName,
-          email: authEmail.toLowerCase(),
-          role: authRole as UserRoleType,
-          institution: authInstitution || "ESSGI Directorate"
-        };
-        setCurrentUser(registeredUser);
-        setIsAuthModalOpen(false);
-        setAuthName("");
-        setAuthEmail("");
-        setAuthInstitution("");
-        setAuthPassword("");
-        setAuthConfirmPassword("");
-        setAuthSuccessMsg(null);
-        setViewMode("dashboard");
-        setActiveTab(getDashboardForUserRole(authRole));
-      }, 1200);
+    } catch {
+      setAuthError("Unable to connect to the registration service. Please try again.");
     }
   };
 
@@ -1638,6 +1518,9 @@ export default function App() {
       const contentType = eqRes.headers.get("content-type");
       if (eqRes.ok && contentType && contentType.includes("application/json")) {
         const eqData = await eqRes.json();
+        if (Array.isArray(eqData.recentAlertDispatches)) {
+          setRecentAlertDispatches(eqData.recentAlertDispatches);
+        }
         if (eqData.success && Array.isArray(eqData.data)) {
           const eqMap = new Map<string, Earthquake>();
           eqData.data.forEach((e: Earthquake) => {
@@ -1719,11 +1602,13 @@ export default function App() {
     setAlerts(activeAlertsLists.filter((a) => a?.id && !dismissedAlertIds.includes(a.id)));
   }, [volcanoes, earthquakes, dismissedAlertIds, alertThresholdConfig]);
 
-  // Real-time Audio alert detection monitor for Red & Orange events
+  // Real-time Audio alert detection monitor for Red & Orange volcanic events only.
+  // Earthquake alerts are derived from backend USGS dispatch metadata to avoid replaying
+  // historical or startup earthquake records on reload/navigation.
   useEffect(() => {
-    if (volcanoes.length === 0 && earthquakes.length === 0) return;
+    if (volcanoes.length === 0) return;
 
-    const currentRedOrOrangeEvents: { id: string; name: string; type: "volcano" | "earthquake"; severity: "Red" | "Orange"; location: string }[] = [];
+    const currentRedOrOrangeEvents: { id: string; name: string; type: "volcano"; severity: "Red" | "Orange"; location: string }[] = [];
 
     volcanoes.forEach((v) => {
       if (v && v.id && (v.severity === "Red" || v.severity === "Orange")) {
@@ -1737,59 +1622,106 @@ export default function App() {
       }
     });
 
-    earthquakes.forEach((eq) => {
-      if (eq && eq.id && (eq.severity === "Red" || eq.severity === "Orange")) {
-        currentRedOrOrangeEvents.push({
-          id: eq.id,
-          name: `M ${eq.magnitude.toFixed(1)} Temblor`,
-          type: "earthquake",
-          severity: eq.severity,
-          location: eq.location
-        });
-      }
-    });
-
-    const currentRedOrOrangeIds = new Set(currentRedOrOrangeEvents.map(e => e?.id).filter(Boolean) as string[]);
-
+    const currentRedOrOrangeIds = new Set(currentRedOrOrangeEvents.map((e) => e.id));
     const isStartupPhase = Date.now() - systemMountTimeRef.current < 15000;
 
     if (isInitialLoadRef.current || isStartupPhase) {
-      // System startup phase: populate known IDs silently to prevent unwanted alert popups on open
       knownEventIdsRef.current = currentRedOrOrangeIds;
-      if (isInitialLoadRef.current) {
-        isInitialLoadRef.current = false;
-      }
+      if (isInitialLoadRef.current) isInitialLoadRef.current = false;
       return;
     }
 
-    // Identify new high-severity events that were not previously in knownEventIdsRef
-    const newEvents = currentRedOrOrangeEvents.filter(e => e?.id && !knownEventIdsRef.current.has(e.id));
-
-    // Update known IDs with all currently active ones
+    const newEvents = currentRedOrOrangeEvents.filter((e) => !knownEventIdsRef.current.has(e.id));
     knownEventIdsRef.current = currentRedOrOrangeIds;
 
-    if (newEvents.length > 0) {
-      // Play audio alert if enabled
-      if (audioAlertsEnabled) {
-        const highestSeverity = newEvents.some(e => e.severity === "Red") ? "Red" : "Orange";
-        playGeologicalAlertSound(highestSeverity);
-      }
+    if (newEvents.length === 0) return;
 
-      // Generate visual notification toast for real-time new alert
-      const newToasts = newEvents.map((e) => ({
-        id: `toast_${e.id}_${Date.now()}`,
-        name: e.name,
-        type: e.type,
-        severity: e.severity,
-        message: e.type === "volcano"
-          ? `Real-time alert active for ${e.name} caldera in ${e.location}.`
-          : `Real-time significant seismic tremor detected near ${e.location}.`,
-        timestamp: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-      }));
-
-      setActiveAudioAlertToasts((prev) => [...prev, ...newToasts]);
+    if (audioAlertsEnabled) {
+      const highestSeverity = newEvents.some((e) => e.severity === "Red") ? "Red" : "Orange";
+      playGeologicalAlertSound(highestSeverity);
     }
-  }, [volcanoes, earthquakes, audioAlertsEnabled]);
+
+    const newToasts = newEvents.map((e) => ({
+      id: `toast_${e.id}_${Date.now()}`,
+      name: e.name,
+      type: e.type,
+      severity: e.severity,
+      message: `Real-time alert active for ${e.name} caldera in ${e.location}.`,
+      timestamp: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    }));
+
+    setActiveAudioAlertToasts((prev) => {
+      const existingIds = new Set(prev.map((toast) => toast.id));
+      return [...prev, ...newToasts.filter((toast) => !existingIds.has(toast.id))];
+    });
+  }, [volcanoes, audioAlertsEnabled]);
+
+  useEffect(() => {
+    if (currentUser.role === "guest" || !currentUser.email) return;
+
+    const userEmail = currentUser.email.trim().toLowerCase();
+    const inMemorySeenIds =
+      notifiedEarthquakeIdsByUserRef.current.get(userEmail) || new Set<string>();
+    notifiedEarthquakeIdsByUserRef.current.set(userEmail, inMemorySeenIds);
+
+    let persistedSeenIds = new Set<string>();
+    try {
+      persistedSeenIds = getSeenUSGSEventIds(window.localStorage, userEmail);
+    } catch {
+      // Keep per-user in-memory deduplication when browser storage is unavailable.
+    }
+
+    const seenIds = new Set([...persistedSeenIds, ...inMemorySeenIds]);
+    const newDispatches = getUnseenRecentUSGSDispatches(
+      recentAlertDispatches,
+      seenIds,
+    );
+    if (newDispatches.length === 0) return;
+
+    try {
+      markUSGSDispatchesSeen(
+        window.localStorage,
+        userEmail,
+        newDispatches,
+      );
+    } catch {
+      // In-memory deduplication below remains available.
+    }
+    newDispatches.forEach((dispatch) => {
+      if (dispatch.eventId) inMemorySeenIds.add(dispatch.eventId);
+    });
+
+    const newToasts: AudioAlertToast[] = newDispatches.map((dispatch) => {
+      const magnitude = Number(dispatch.magnitude);
+      const severity = dispatch.severity === "Red" ? "Red" : "Orange";
+      const location = dispatch.location || "an unknown location";
+      const name = `M ${magnitude.toFixed(1)} Temblor`;
+      return {
+        id: `toast_${dispatch.eventId}`,
+        name,
+        type: "earthquake",
+        severity,
+        message: `Real-time significant seismic tremor detected near ${location}.`,
+        timestamp: new Date(dispatch.timestamp || Date.now()).toLocaleTimeString(
+          "en-US",
+          { hour: "2-digit", minute: "2-digit", second: "2-digit" },
+        ),
+      };
+    });
+
+    if (audioAlertsEnabled) {
+      const highestSeverity = newToasts.some((toast) => toast.severity === "Red")
+        ? "Red"
+        : "Orange";
+      playGeologicalAlertSound(highestSeverity);
+    }
+
+    setActiveAudioAlertToasts((previous) => {
+      const existingIds = new Set(previous.map((toast) => toast.id));
+      const uniqueNewToasts = newToasts.filter((toast) => !existingIds.has(toast.id));
+      return [...previous, ...uniqueNewToasts];
+    });
+  }, [recentAlertDispatches, audioAlertsEnabled, currentUser.email, currentUser.role]);
 
   // Auto-dismiss audio alerts toasts after 8 seconds
   useEffect(() => {
@@ -1929,7 +1861,11 @@ export default function App() {
           }}
           onSelectDashboardSubTab={(subTab) => {
             setCometPortalItem(null);
-            setActiveTab("dashboard");
+            setActiveTab(
+              subTab === "overview"
+                ? getDashboardForUserRole(currentUser.role)
+                : "dashboard"
+            );
             setDashboardSubTab(subTab as any);
           }}
           onSelectAnalyticsSubTab={(subTab) => {
@@ -2004,8 +1940,8 @@ export default function App() {
       </div>
 
       {/* 3. MAIN CENTRAL CONTENT CANVAS */}
-      <main className="flex-grow p-4 md:p-6 bg-transparent transition-colors duration-200">
-        <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+      <main className={`flex-grow ${activeTab === "home" ? "p-0" : "p-4 md:p-6"} bg-transparent transition-colors duration-200`}>
+        <div className={`${activeTab === "home" ? "w-full space-y-0" : "max-w-7xl mx-auto space-y-6"} animate-fade-in`}>
 
           {cometPortalItem ? (
             <CometPortal
@@ -4153,4 +4089,3 @@ export default function App() {
 </div>
 );
 }
-
